@@ -68,15 +68,39 @@ private:
 	bool control_mem = false;
 	bool meta_mem = false;
 
-	int buttons_state;
+	MouseButton buttons_state = MOUSE_BUTTON_NONE;
 
-	MouseMode mouse_mode;
+	// https://developer.android.com/reference/android/view/PointerIcon
+	// mapping between Godot's cursor shape to Android's'
+	int android_cursors[CURSOR_MAX] = {
+		1000, //CURSOR_ARROW
+		1008, //CURSOR_IBEAM
+		1002, //CURSOR_POINTIN
+		1007, //CURSOR_CROSS
+		1004, //CURSOR_WAIT
+		1004, //CURSOR_BUSY
+		1021, //CURSOR_DRAG
+		1021, //CURSOR_CAN_DRO
+		1000, //CURSOR_FORBIDD (no corresponding icon in Android's icon so fallback to default)
+		1015, //CURSOR_VSIZE
+		1014, //CURSOR_HSIZE
+		1017, //CURSOR_BDIAGSI
+		1016, //CURSOR_FDIAGSI
+		1020, //CURSOR_MOVE
+		1015, //CURSOR_VSPLIT
+		1014, //CURSOR_HSPLIT
+		1003, //CURSOR_HELP
+	};
+	const int CURSOR_TYPE_NULL = 0;
+	MouseMode mouse_mode = MouseMode::MOUSE_MODE_VISIBLE;
 
 	bool keep_screen_on;
 
 	Vector<TouchPos> touch;
 	Point2 hover_prev_pos; // needed to calculate the relative position on hover events
 	Point2 scroll_prev_pos; // needed to calculate the relative position on scroll events
+
+	CursorShape cursor_shape = CursorShape::CURSOR_ARROW;
 
 #if defined(VULKAN_ENABLED)
 	VulkanContextAndroid *context_vulkan;
@@ -88,6 +112,7 @@ private:
 	Callable window_event_callback;
 	Callable input_event_callback;
 	Callable input_text_callback;
+	Callable rect_changed_callback;
 
 	void _window_callback(const Callable &p_callable, const Variant &p_arg) const;
 
@@ -95,11 +120,11 @@ private:
 
 	void _set_key_modifier_state(Ref<InputEventWithModifiers> ev);
 
-	static int _button_index_from_mask(int button_mask);
+	static MouseButton _button_index_from_mask(MouseButton button_mask);
 
-	static int _android_button_mask_to_godot_button_mask(int android_button_mask);
+	static MouseButton _android_button_mask_to_godot_button_mask(int android_button_mask);
 
-	void _wheel_button_click(int event_buttons_mask, const Ref<InputEventMouseButton> &ev, int wheel_button, float factor);
+	void _wheel_button_click(MouseButton event_buttons_mask, const Ref<InputEventMouseButton> &ev, MouseButton wheel_button, float factor);
 
 public:
 	static DisplayServerAndroid *get_singleton();
@@ -163,6 +188,8 @@ public:
 	virtual void window_move_to_foreground(WindowID p_window = MAIN_WINDOW_ID);
 	virtual bool window_can_draw(WindowID p_window = MAIN_WINDOW_ID) const;
 	virtual bool can_any_window_draw() const;
+	virtual void window_set_vsync_mode(DisplayServer::VSyncMode p_vsync_mode, WindowID p_window = MAIN_WINDOW_ID);
+	virtual DisplayServer::VSyncMode window_get_vsync_mode(WindowID p_vsync_mode) const;
 
 	virtual void alert(const String &p_alert, const String &p_title);
 
@@ -180,19 +207,23 @@ public:
 	void process_joy_event(JoypadEvent p_event);
 	void process_key_event(int p_keycode, int p_scancode, int p_unicode_char, bool p_pressed);
 
+	virtual void cursor_set_shape(CursorShape p_shape);
+	virtual CursorShape cursor_get_shape() const;
+
 	void mouse_set_mode(MouseMode p_mode);
 	MouseMode mouse_get_mode() const;
 
-	static DisplayServer *create_func(const String &p_rendering_driver, WindowMode p_mode, uint32_t p_flags, const Vector2i &p_resolution, Error &r_error);
+	static DisplayServer *create_func(const String &p_rendering_driver, WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i &p_resolution, Error &r_error);
 	static Vector<String> get_rendering_drivers_func();
 	static void register_android_driver();
 
 	void reset_window();
+	void notify_surface_changed(int p_width, int p_height);
 
 	virtual Point2i mouse_get_position() const;
-	virtual int mouse_get_button_state() const;
+	virtual MouseButton mouse_get_button_state() const;
 
-	DisplayServerAndroid(const String &p_rendering_driver, WindowMode p_mode, uint32_t p_flags, const Vector2i &p_resolution, Error &r_error);
+	DisplayServerAndroid(const String &p_rendering_driver, WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i &p_resolution, Error &r_error);
 	~DisplayServerAndroid();
 };
 

@@ -48,15 +48,22 @@ public:
 		SHADER_VERSION_DEPTH_PASS,
 		SHADER_VERSION_DEPTH_PASS_DP,
 		SHADER_VERSION_DEPTH_PASS_WITH_NORMAL_AND_ROUGHNESS,
-		SHADER_VERSION_DEPTH_PASS_WITH_NORMAL_AND_ROUGHNESS_AND_GIPROBE,
+		SHADER_VERSION_DEPTH_PASS_WITH_NORMAL_AND_ROUGHNESS_AND_VOXEL_GI,
 		SHADER_VERSION_DEPTH_PASS_WITH_MATERIAL,
 		SHADER_VERSION_DEPTH_PASS_WITH_SDF,
 		SHADER_VERSION_COLOR_PASS,
-		SHADER_VERSION_COLOR_PASS_WITH_FORWARD_GI,
 		SHADER_VERSION_COLOR_PASS_WITH_SEPARATE_SPECULAR,
 		SHADER_VERSION_LIGHTMAP_COLOR_PASS,
 		SHADER_VERSION_LIGHTMAP_COLOR_PASS_WITH_SEPARATE_SPECULAR,
+
 		SHADER_VERSION_MAX
+	};
+
+	enum ShaderSpecializations {
+		SHADER_SPECIALIZATION_FORWARD_GI = 1 << 0,
+		SHADER_SPECIALIZATION_PROJECTOR = 1 << 1,
+		SHADER_SPECIALIZATION_SOFT_SHADOWS = 1 << 2,
+		SHADER_SPECIALIZATION_DIRECTIONAL_SOFT_SHADOWS = 1 << 3,
 	};
 
 	struct ShaderData : public RendererStorageRD::ShaderData {
@@ -126,6 +133,7 @@ public:
 		bool uses_discard;
 		bool uses_roughness;
 		bool uses_normal;
+		bool uses_particle_trails;
 
 		bool unshaded;
 		bool uses_vertex;
@@ -164,17 +172,14 @@ public:
 	struct MaterialData : public RendererStorageRD::MaterialData {
 		uint64_t last_frame;
 		ShaderData *shader_data;
-		RID uniform_buffer;
 		RID uniform_set;
-		Vector<RID> texture_cache;
-		Vector<uint8_t> ubo_data;
 		uint64_t last_pass = 0;
 		uint32_t index = 0;
 		RID next_pass;
 		uint8_t priority;
 		virtual void set_render_priority(int p_priority);
 		virtual void set_next_pass(RID p_pass);
-		virtual void update_parameters(const Map<StringName, Variant> &p_parameters, bool p_uniform_dirty, bool p_textures_dirty);
+		virtual bool update_parameters(const Map<StringName, Variant> &p_parameters, bool p_uniform_dirty, bool p_textures_dirty);
 		virtual ~MaterialData();
 	};
 
@@ -190,8 +195,6 @@ public:
 	RID default_material;
 	RID overdraw_material_shader;
 	RID overdraw_material;
-	RID wireframe_material_shader;
-	RID wireframe_material;
 	RID default_shader_rd;
 	RID default_shader_sdfgi_rd;
 
@@ -199,6 +202,12 @@ public:
 	RID default_vec4_xform_uniform_set;
 
 	RID shadow_sampler;
+
+	RID default_material_uniform_set;
+	ShaderData *default_material_shader_ptr = nullptr;
+
+	RID overdraw_material_uniform_set;
+	ShaderData *overdraw_material_shader_ptr = nullptr;
 
 	SceneShaderForwardClustered();
 	~SceneShaderForwardClustered();

@@ -42,35 +42,22 @@ Error WebSocketClient::connect_to_url(String p_url, const Vector<String> p_proto
 	_is_multiplayer = gd_mp_api;
 
 	String host = p_url;
-	String path = "/";
-	int p_len = -1;
-	int port = 80;
+	String path;
+	String scheme;
+	int port = 0;
+	Error err = p_url.parse_url(scheme, host, port, path);
+	ERR_FAIL_COND_V_MSG(err != OK, err, "Invalid URL: " + p_url);
+
 	bool ssl = false;
-	if (host.begins_with("wss://")) {
-		ssl = true; // we should implement this
-		host = host.substr(6, host.length() - 6);
-		port = 443;
-	} else {
-		ssl = false;
-		if (host.begins_with("ws://")) {
-			host = host.substr(5, host.length() - 5);
-		}
+	if (scheme == "wss://") {
+		ssl = true;
 	}
-
-	// Path
-	p_len = host.find("/");
-	if (p_len != -1) {
-		path = host.substr(p_len, host.length() - p_len);
-		host = host.substr(0, p_len);
+	if (port == 0) {
+		port = ssl ? 443 : 80;
 	}
-
-	// Port
-	p_len = host.rfind(":");
-	if (p_len != -1 && p_len == host.find(":")) {
-		port = host.substr(p_len, host.length() - p_len).to_int();
-		host = host.substr(0, p_len);
+	if (path.is_empty()) {
+		path = "/";
 	}
-
 	return connect_to_host(host, path, port, ssl, p_protocols, p_custom_headers);
 }
 
@@ -139,12 +126,12 @@ void WebSocketClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_verify_ssl_enabled", "enabled"), &WebSocketClient::set_verify_ssl_enabled);
 	ClassDB::bind_method(D_METHOD("is_verify_ssl_enabled"), &WebSocketClient::is_verify_ssl_enabled);
 
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "verify_ssl", PROPERTY_HINT_NONE, "", 0), "set_verify_ssl_enabled", "is_verify_ssl_enabled");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "verify_ssl", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NONE), "set_verify_ssl_enabled", "is_verify_ssl_enabled");
 
 	ClassDB::bind_method(D_METHOD("get_trusted_ssl_certificate"), &WebSocketClient::get_trusted_ssl_certificate);
 	ClassDB::bind_method(D_METHOD("set_trusted_ssl_certificate"), &WebSocketClient::set_trusted_ssl_certificate);
 
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "trusted_ssl_certificate", PROPERTY_HINT_RESOURCE_TYPE, "X509Certificate", 0), "set_trusted_ssl_certificate", "get_trusted_ssl_certificate");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "trusted_ssl_certificate", PROPERTY_HINT_RESOURCE_TYPE, "X509Certificate", PROPERTY_USAGE_NONE), "set_trusted_ssl_certificate", "get_trusted_ssl_certificate");
 
 	ADD_SIGNAL(MethodInfo("data_received"));
 	ADD_SIGNAL(MethodInfo("connection_established", PropertyInfo(Variant::STRING, "protocol")));

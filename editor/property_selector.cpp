@@ -52,7 +52,7 @@ void PropertySelector::_sbox_input(const Ref<InputEvent> &p_ie) {
 				search_box->accept_event();
 
 				TreeItem *root = search_options->get_root();
-				if (!root->get_children()) {
+				if (!root->get_first_child()) {
 					break;
 				}
 
@@ -125,18 +125,23 @@ void PropertySelector::_update_search() {
 			search_options->get_theme_icon("float", "EditorIcons"),
 			search_options->get_theme_icon("String", "EditorIcons"),
 			search_options->get_theme_icon("Vector2", "EditorIcons"),
+			search_options->get_theme_icon("Vector2i", "EditorIcons"),
 			search_options->get_theme_icon("Rect2", "EditorIcons"),
+			search_options->get_theme_icon("Rect2i", "EditorIcons"),
 			search_options->get_theme_icon("Vector3", "EditorIcons"),
+			search_options->get_theme_icon("Vector3i", "EditorIcons"),
 			search_options->get_theme_icon("Transform2D", "EditorIcons"),
 			search_options->get_theme_icon("Plane", "EditorIcons"),
-			search_options->get_theme_icon("Quat", "EditorIcons"),
+			search_options->get_theme_icon("Quaternion", "EditorIcons"),
 			search_options->get_theme_icon("AABB", "EditorIcons"),
 			search_options->get_theme_icon("Basis", "EditorIcons"),
-			search_options->get_theme_icon("Transform", "EditorIcons"),
+			search_options->get_theme_icon("Transform3D", "EditorIcons"),
 			search_options->get_theme_icon("Color", "EditorIcons"),
-			search_options->get_theme_icon("Path", "EditorIcons"),
+			search_options->get_theme_icon("NodePath", "EditorIcons"),
 			search_options->get_theme_icon("RID", "EditorIcons"),
-			search_options->get_theme_icon("Object", "EditorIcons"),
+			search_options->get_theme_icon("MiniObject", "EditorIcons"),
+			search_options->get_theme_icon("Callable", "EditorIcons"),
+			search_options->get_theme_icon("Signal", "EditorIcons"),
 			search_options->get_theme_icon("Dictionary", "EditorIcons"),
 			search_options->get_theme_icon("Array", "EditorIcons"),
 			search_options->get_theme_icon("PackedByteArray", "EditorIcons"),
@@ -150,7 +155,7 @@ void PropertySelector::_update_search() {
 
 		for (List<PropertyInfo>::Element *E = props.front(); E; E = E->next()) {
 			if (E->get().usage == PROPERTY_USAGE_CATEGORY) {
-				if (category && category->get_children() == nullptr) {
+				if (category && category->get_first_child() == nullptr) {
 					memdelete(category); //old category was unused
 				}
 				category = search_options->create_item(root);
@@ -192,7 +197,7 @@ void PropertySelector::_update_search() {
 			item->set_selectable(0, true);
 		}
 
-		if (category && category->get_children() == nullptr) {
+		if (category && category->get_first_child() == nullptr) {
 			memdelete(category); //old category was unused
 		}
 	} else {
@@ -225,7 +230,7 @@ void PropertySelector::_update_search() {
 
 		for (List<MethodInfo>::Element *E = methods.front(); E; E = E->next()) {
 			if (E->get().name.begins_with("*")) {
-				if (category && category->get_children() == nullptr) {
+				if (category && category->get_first_child() == nullptr) {
 					memdelete(category); //old category was unused
 				}
 				category = search_options->create_item(root);
@@ -316,12 +321,12 @@ void PropertySelector::_update_search() {
 			}
 		}
 
-		if (category && category->get_children() == nullptr) {
+		if (category && category->get_first_child() == nullptr) {
 			memdelete(category); //old category was unused
 		}
 	}
 
-	get_ok_button()->set_disabled(root->get_children() == nullptr);
+	get_ok_button()->set_disabled(root->get_first_child() == nullptr);
 }
 
 void PropertySelector::_confirmed() {

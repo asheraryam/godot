@@ -56,6 +56,10 @@ public:
 	};
 
 private:
+	static Ref<Shader> wheel_shader;
+	static Ref<Shader> circle_shader;
+	static List<Color> preset_cache;
+
 	Control *screen = nullptr;
 	Control *uv_edit = memnew(Control);
 	Control *w_edit = memnew(Control);
@@ -86,6 +90,8 @@ private:
 	PickerShapeType picker_type = SHAPE_HSV_WHEEL;
 
 	Color color;
+	Color old_color;
+	bool display_old_color = false;
 	bool raw_mode_enabled = false;
 	bool hsv_mode_enabled = false;
 	bool deferred_mode_enabled = false;
@@ -99,13 +105,14 @@ private:
 	float v = 0.0;
 	Color last_hsv;
 
-	void _html_entered(const String &p_html);
+	void _html_submitted(const String &p_html);
 	void _value_changed(double);
 	void _update_controls();
 	void _update_color(bool p_update_sliders = true);
 	void _update_presets();
 	void _update_text_value();
 	void _text_type_toggled();
+	void _sample_input(const Ref<InputEvent> &p_event);
 	void _sample_draw();
 	void _hsv_draw(int p_which, Control *c);
 	void _slider_draw(int p_which);
@@ -125,12 +132,19 @@ protected:
 	static void _bind_methods();
 
 public:
+	static void init_shaders();
+	static void finish_shaders();
+
 	void set_edit_alpha(bool p_show);
 	bool is_editing_alpha() const;
 
 	void _set_pick_color(const Color &p_color, bool p_update_sliders);
 	void set_pick_color(const Color &p_color);
 	Color get_pick_color() const;
+	void set_old_color(const Color &p_color);
+
+	void set_display_old_color(bool p_enabled);
+	bool is_displaying_old_color() const;
 
 	void set_picker_shape(PickerShapeType p_picker_type);
 	PickerShapeType get_picker_shape() const;
@@ -171,6 +185,7 @@ class ColorPickerButton : public Button {
 	Color color;
 	bool edit_alpha = true;
 
+	void _about_to_popup();
 	void _color_changed(const Color &p_color);
 	void _modal_closed();
 

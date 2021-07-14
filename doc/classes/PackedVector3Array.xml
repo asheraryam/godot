@@ -59,6 +59,15 @@
 				Creates a copy of the array, and returns it.
 			</description>
 		</method>
+		<method name="fill">
+			<return type="void">
+			</return>
+			<argument index="0" name="value" type="Vector3">
+			</argument>
+			<description>
+				Assigns the given value to all elements in the array. This can typically be used together with [method resize] to create an array with a given size and initialized elements.
+			</description>
+		</method>
 		<method name="has">
 			<return type="bool">
 			</return>
@@ -97,7 +106,7 @@
 		<method name="operator *" qualifiers="operator">
 			<return type="PackedVector3Array">
 			</return>
-			<argument index="0" name="right" type="Transform">
+			<argument index="0" name="right" type="Transform3D">
 			</argument>
 			<description>
 			</description>

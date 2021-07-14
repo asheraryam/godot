@@ -23,10 +23,10 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Clears the [Color] at [code]name[/code] if the theme has [code]node_type[/code].
+				Clears the [Color] at [code]name[/code] if the theme has [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="clear_constant">
@@ -34,10 +34,10 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Clears the constant at [code]name[/code] if the theme has [code]node_type[/code].
+				Clears the constant at [code]name[/code] if the theme has [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="clear_font">
@@ -45,10 +45,10 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Clears the [Font] at [code]name[/code] if the theme has [code]node_type[/code].
+				Clears the [Font] at [code]name[/code] if the theme has [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="clear_font_size">
@@ -56,10 +56,10 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Clears the font size [code]name[/code] if the theme has [code]node_type[/code].
+				Clears the font size [code]name[/code] if the theme has [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="clear_icon">
@@ -67,10 +67,10 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Clears the icon at [code]name[/code] if the theme has [code]node_type[/code].
+				Clears the icon at [code]name[/code] if the theme has [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="clear_stylebox">
@@ -78,10 +78,10 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Clears [StyleBox] at [code]name[/code] if the theme has [code]node_type[/code].
+				Clears [StyleBox] at [code]name[/code] if the theme has [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="clear_theme_item">
@@ -91,10 +91,19 @@
 			</argument>
 			<argument index="1" name="name" type="StringName">
 			</argument>
-			<argument index="2" name="node_type" type="StringName">
+			<argument index="2" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Clears the theme item of [code]data_type[/code] at [code]name[/code] if the theme has [code]node_type[/code].
+				Clears the theme item of [code]data_type[/code] at [code]name[/code] if the theme has [code]theme_type[/code].
+			</description>
+		</method>
+		<method name="clear_type_variation">
+			<return type="void">
+			</return>
+			<argument index="0" name="theme_type" type="StringName">
+			</argument>
+			<description>
+				Unmarks [code]theme_type[/code] as being a variation of any other type.
 			</description>
 		</method>
 		<method name="copy_default_theme">
@@ -118,19 +127,19 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Returns the [Color] at [code]name[/code] if the theme has [code]node_type[/code].
+				Returns the [Color] at [code]name[/code] if the theme has [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="get_color_list" qualifiers="const">
 			<return type="PackedStringArray">
 			</return>
-			<argument index="0" name="node_type" type="String">
+			<argument index="0" name="theme_type" type="String">
 			</argument>
 			<description>
-				Returns all the [Color]s as a [PackedStringArray] filled with each [Color]'s name, for use in [method get_color], if the theme has [code]node_type[/code].
+				Returns all the [Color]s as a [PackedStringArray] filled with each [Color]'s name, for use in [method get_color], if the theme has [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="get_color_type_list" qualifiers="const">
@@ -145,19 +154,19 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Returns the constant at [code]name[/code] if the theme has [code]node_type[/code].
+				Returns the constant at [code]name[/code] if the theme has [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="get_constant_list" qualifiers="const">
 			<return type="PackedStringArray">
 			</return>
-			<argument index="0" name="node_type" type="String">
+			<argument index="0" name="theme_type" type="String">
 			</argument>
 			<description>
-				Returns all the constants as a [PackedStringArray] filled with each constant's name, for use in [method get_constant], if the theme has [code]node_type[/code].
+				Returns all the constants as a [PackedStringArray] filled with each constant's name, for use in [method get_constant], if the theme has [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="get_constant_type_list" qualifiers="const">
@@ -172,19 +181,19 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Returns the [Font] at [code]name[/code] if the theme has [code]node_type[/code].
+				Returns the [Font] at [code]name[/code] if the theme has [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="get_font_list" qualifiers="const">
 			<return type="PackedStringArray">
 			</return>
-			<argument index="0" name="node_type" type="String">
+			<argument index="0" name="theme_type" type="String">
 			</argument>
 			<description>
-				Returns all the [Font]s as a [PackedStringArray] filled with each [Font]'s name, for use in [method get_font], if the theme has [code]node_type[/code].
+				Returns all the [Font]s as a [PackedStringArray] filled with each [Font]'s name, for use in [method get_font], if the theme has [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="get_font_size" qualifiers="const">
@@ -192,19 +201,19 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Returns the font size at [code]name[/code] if the theme has [code]node_type[/code].
+				Returns the font size at [code]name[/code] if the theme has [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="get_font_size_list" qualifiers="const">
 			<return type="PackedStringArray">
 			</return>
-			<argument index="0" name="node_type" type="String">
+			<argument index="0" name="theme_type" type="String">
 			</argument>
 			<description>
-				Returns all the font sizes as a [PackedStringArray] filled with each font size name, for use in [method get_font_size], if the theme has [code]node_type[/code].
+				Returns all the font sizes as a [PackedStringArray] filled with each font size name, for use in [method get_font_size], if the theme has [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="get_font_size_type_list" qualifiers="const">
@@ -226,19 +235,19 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Returns the icon [Texture2D] at [code]name[/code] if the theme has [code]node_type[/code].
+				Returns the icon [Texture2D] at [code]name[/code] if the theme has [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="get_icon_list" qualifiers="const">
 			<return type="PackedStringArray">
 			</return>
-			<argument index="0" name="node_type" type="String">
+			<argument index="0" name="theme_type" type="String">
 			</argument>
 			<description>
-				Returns all the icons as a [PackedStringArray] filled with each [Texture2D]'s name, for use in [method get_icon], if the theme has [code]node_type[/code].
+				Returns all the icons as a [PackedStringArray] filled with each [Texture2D]'s name, for use in [method get_icon], if the theme has [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="get_icon_type_list" qualifiers="const">
@@ -253,21 +262,21 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Returns the [StyleBox] at [code]name[/code] if the theme has [code]node_type[/code].
-				Valid [code]name[/code]s may be found using [method get_stylebox_list]. Valid [code]node_type[/code]s may be found using [method get_stylebox_type_list].
+				Returns the [StyleBox] at [code]name[/code] if the theme has [code]theme_type[/code].
+				Valid [code]name[/code]s may be found using [method get_stylebox_list]. Valid [code]theme_type[/code]s may be found using [method get_stylebox_type_list].
 			</description>
 		</method>
 		<method name="get_stylebox_list" qualifiers="const">
 			<return type="PackedStringArray">
 			</return>
-			<argument index="0" name="node_type" type="String">
+			<argument index="0" name="theme_type" type="String">
 			</argument>
 			<description>
-				Returns all the [StyleBox]s as a [PackedStringArray] filled with each [StyleBox]'s name, for use in [method get_stylebox], if the theme has [code]node_type[/code].
-				Valid [code]node_type[/code]s may be found using [method get_stylebox_type_list].
+				Returns all the [StyleBox]s as a [PackedStringArray] filled with each [StyleBox]'s name, for use in [method get_stylebox], if the theme has [code]theme_type[/code].
+				Valid [code]theme_type[/code]s may be found using [method get_stylebox_type_list].
 			</description>
 		</method>
 		<method name="get_stylebox_type_list" qualifiers="const">
@@ -284,11 +293,11 @@
 			</argument>
 			<argument index="1" name="name" type="StringName">
 			</argument>
-			<argument index="2" name="node_type" type="StringName">
+			<argument index="2" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Returns the theme item of [code]data_type[/code] at [code]name[/code] if the theme has [code]node_type[/code].
-				Valid [code]name[/code]s may be found using [method get_theme_item_list] or a data type specific method. Valid [code]node_type[/code]s may be found using [method get_theme_item_type_list] or a data type specific method.
+				Returns the theme item of [code]data_type[/code] at [code]name[/code] if the theme has [code]theme_type[/code].
+				Valid [code]name[/code]s may be found using [method get_theme_item_list] or a data type specific method. Valid [code]theme_type[/code]s may be found using [method get_theme_item_type_list] or a data type specific method.
 			</description>
 		</method>
 		<method name="get_theme_item_list" qualifiers="const">
@@ -296,11 +305,11 @@
 			</return>
 			<argument index="0" name="data_type" type="int" enum="Theme.DataType">
 			</argument>
-			<argument index="1" name="node_type" type="String">
+			<argument index="1" name="theme_type" type="String">
 			</argument>
 			<description>
-				Returns all the theme items of [code]data_type[/code] as a [PackedStringArray] filled with each theme items's name, for use in [method get_theme_item] or a data type specific method, if the theme has [code]node_type[/code].
-				Valid [code]node_type[/code]s may be found using [method get_theme_item_type_list] or a data type specific method.
+				Returns all the theme items of [code]data_type[/code] as a [PackedStringArray] filled with each theme items's name, for use in [method get_theme_item] or a data type specific method, if the theme has [code]theme_type[/code].
+				Valid [code]theme_type[/code]s may be found using [method get_theme_item_type_list] or a data type specific method.
 			</description>
 		</method>
 		<method name="get_theme_item_type_list" qualifiers="const">
@@ -319,16 +328,34 @@
 				Returns all the theme types as a [PackedStringArray] filled with unique type names, for use in other [code]get_*[/code] functions of this theme.
 			</description>
 		</method>
+		<method name="get_type_variation_base" qualifiers="const">
+			<return type="StringName">
+			</return>
+			<argument index="0" name="theme_type" type="StringName">
+			</argument>
+			<description>
+				Returns the base theme type if [code]theme_type[/code] is a valid variation type. Returns an empty string otherwise.
+			</description>
+		</method>
+		<method name="get_type_variation_list" qualifiers="const">
+			<return type="PackedStringArray">
+			</return>
+			<argument index="0" name="base_type" type="StringName">
+			</argument>
+			<description>
+				Returns a list of all variation for the given [code]base_type[/code].
+			</description>
+		</method>
 		<method name="has_color" qualifiers="const">
 			<return type="bool">
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Returns [code]true[/code] if [Color] with [code]name[/code] is in [code]node_type[/code].
-				Returns [code]false[/code] if the theme does not have [code]node_type[/code].
+				Returns [code]true[/code] if [Color] with [code]name[/code] is in [code]theme_type[/code].
+				Returns [code]false[/code] if the theme does not have [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="has_constant" qualifiers="const">
@@ -336,11 +363,11 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Returns [code]true[/code] if constant with [code]name[/code] is in [code]node_type[/code].
-				Returns [code]false[/code] if the theme does not have [code]node_type[/code].
+				Returns [code]true[/code] if constant with [code]name[/code] is in [code]theme_type[/code].
+				Returns [code]false[/code] if the theme does not have [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="has_font" qualifiers="const">
@@ -348,11 +375,11 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Returns [code]true[/code] if [Font] with [code]name[/code] is in [code]node_type[/code].
-				Returns [code]false[/code] if the theme does not have [code]node_type[/code].
+				Returns [code]true[/code] if [Font] with [code]name[/code] is in [code]theme_type[/code].
+				Returns [code]false[/code] if the theme does not have [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="has_font_size" qualifiers="const">
@@ -360,11 +387,11 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Returns [code]true[/code] if font size with [code]name[/code] is in [code]node_type[/code].
-				Returns [code]false[/code] if the theme does not have [code]node_type[/code].
+				Returns [code]true[/code] if font size with [code]name[/code] is in [code]theme_type[/code].
+				Returns [code]false[/code] if the theme does not have [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="has_icon" qualifiers="const">
@@ -372,11 +399,11 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Returns [code]true[/code] if icon [Texture2D] with [code]name[/code] is in [code]node_type[/code].
-				Returns [code]false[/code] if the theme does not have [code]node_type[/code].
+				Returns [code]true[/code] if icon [Texture2D] with [code]name[/code] is in [code]theme_type[/code].
+				Returns [code]false[/code] if the theme does not have [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="has_stylebox" qualifiers="const">
@@ -384,11 +411,11 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Returns [code]true[/code] if [StyleBox] with [code]name[/code] is in [code]node_type[/code].
-				Returns [code]false[/code] if the theme does not have [code]node_type[/code].
+				Returns [code]true[/code] if [StyleBox] with [code]name[/code] is in [code]theme_type[/code].
+				Returns [code]false[/code] if the theme does not have [code]theme_type[/code].
 			</description>
 		</method>
 		<method name="has_theme_item" qualifiers="const">
@@ -398,11 +425,22 @@
 			</argument>
 			<argument index="1" name="name" type="StringName">
 			</argument>
-			<argument index="2" name="node_type" type="StringName">
+			<argument index="2" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Returns [code]true[/code] if a theme item of [code]data_type[/code] with [code]name[/code] is in [code]node_type[/code].
-				Returns [code]false[/code] if the theme does not have [code]node_type[/code].
+				Returns [code]true[/code] if a theme item of [code]data_type[/code] with [code]name[/code] is in [code]theme_type[/code].
+				Returns [code]false[/code] if the theme does not have [code]theme_type[/code].
+			</description>
+		</method>
+		<method name="is_type_variation" qualifiers="const">
+			<return type="bool">
+			</return>
+			<argument index="0" name="theme_type" type="StringName">
+			</argument>
+			<argument index="1" name="base_type" type="StringName">
+			</argument>
+			<description>
+				Returns [code]true[/code] if [code]theme_type[/code] is marked as a variation of [code]base_type[/code] in this theme.
 			</description>
 		</method>
 		<method name="rename_color">
@@ -412,10 +450,10 @@
 			</argument>
 			<argument index="1" name="name" type="StringName">
 			</argument>
-			<argument index="2" name="node_type" type="StringName">
+			<argument index="2" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Renames the [Color] at [code]old_name[/code] to [code]name[/code] if the theme has [code]node_type[/code]. If [code]name[/code] is already taken, this method fails.
+				Renames the [Color] at [code]old_name[/code] to [code]name[/code] if the theme has [code]theme_type[/code]. If [code]name[/code] is already taken, this method fails.
 			</description>
 		</method>
 		<method name="rename_constant">
@@ -425,10 +463,10 @@
 			</argument>
 			<argument index="1" name="name" type="StringName">
 			</argument>
-			<argument index="2" name="node_type" type="StringName">
+			<argument index="2" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Renames the constant at [code]old_name[/code] to [code]name[/code] if the theme has [code]node_type[/code]. If [code]name[/code] is already taken, this method fails.
+				Renames the constant at [code]old_name[/code] to [code]name[/code] if the theme has [code]theme_type[/code]. If [code]name[/code] is already taken, this method fails.
 			</description>
 		</method>
 		<method name="rename_font">
@@ -438,10 +476,10 @@
 			</argument>
 			<argument index="1" name="name" type="StringName">
 			</argument>
-			<argument index="2" name="node_type" type="StringName">
+			<argument index="2" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Renames the [Font] at [code]old_name[/code] to [code]name[/code] if the theme has [code]node_type[/code]. If [code]name[/code] is already taken, this method fails.
+				Renames the [Font] at [code]old_name[/code] to [code]name[/code] if the theme has [code]theme_type[/code]. If [code]name[/code] is already taken, this method fails.
 			</description>
 		</method>
 		<method name="rename_font_size">
@@ -451,10 +489,10 @@
 			</argument>
 			<argument index="1" name="name" type="StringName">
 			</argument>
-			<argument index="2" name="node_type" type="StringName">
+			<argument index="2" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Renames the font size [code]old_name[/code] to [code]name[/code] if the theme has [code]node_type[/code]. If [code]name[/code] is already taken, this method fails.
+				Renames the font size [code]old_name[/code] to [code]name[/code] if the theme has [code]theme_type[/code]. If [code]name[/code] is already taken, this method fails.
 			</description>
 		</method>
 		<method name="rename_icon">
@@ -464,10 +502,10 @@
 			</argument>
 			<argument index="1" name="name" type="StringName">
 			</argument>
-			<argument index="2" name="node_type" type="StringName">
+			<argument index="2" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Renames the icon at [code]old_name[/code] to [code]name[/code] if the theme has [code]node_type[/code]. If [code]name[/code] is already taken, this method fails.
+				Renames the icon at [code]old_name[/code] to [code]name[/code] if the theme has [code]theme_type[/code]. If [code]name[/code] is already taken, this method fails.
 			</description>
 		</method>
 		<method name="rename_stylebox">
@@ -477,10 +515,10 @@
 			</argument>
 			<argument index="1" name="name" type="StringName">
 			</argument>
-			<argument index="2" name="node_type" type="StringName">
+			<argument index="2" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Renames [StyleBox] at [code]old_name[/code] to [code]name[/code] if the theme has [code]node_type[/code]. If [code]name[/code] is already taken, this method fails.
+				Renames [StyleBox] at [code]old_name[/code] to [code]name[/code] if the theme has [code]theme_type[/code]. If [code]name[/code] is already taken, this method fails.
 			</description>
 		</method>
 		<method name="rename_theme_item">
@@ -492,10 +530,10 @@
 			</argument>
 			<argument index="2" name="name" type="StringName">
 			</argument>
-			<argument index="3" name="node_type" type="StringName">
+			<argument index="3" name="theme_type" type="StringName">
 			</argument>
 			<description>
-				Renames the theme item of [code]data_type[/code] at [code]old_name[/code] to [code]name[/code] if the theme has [code]node_type[/code]. If [code]name[/code] is already taken, this method fails.
+				Renames the theme item of [code]data_type[/code] at [code]old_name[/code] to [code]name[/code] if the theme has [code]theme_type[/code]. If [code]name[/code] is already taken, this method fails.
 			</description>
 		</method>
 		<method name="set_color">
@@ -503,13 +541,13 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<argument index="2" name="color" type="Color">
 			</argument>
 			<description>
-				Sets the theme's [Color] to [code]color[/code] at [code]name[/code] in [code]node_type[/code].
-				Creates [code]node_type[/code] if the theme does not have it.
+				Sets the theme's [Color] to [code]color[/code] at [code]name[/code] in [code]theme_type[/code].
+				Creates [code]theme_type[/code] if the theme does not have it.
 			</description>
 		</method>
 		<method name="set_constant">
@@ -517,13 +555,13 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<argument index="2" name="constant" type="int">
 			</argument>
 			<description>
-				Sets the theme's constant to [code]constant[/code] at [code]name[/code] in [code]node_type[/code].
-				Creates [code]node_type[/code] if the theme does not have it.
+				Sets the theme's constant to [code]constant[/code] at [code]name[/code] in [code]theme_type[/code].
+				Creates [code]theme_type[/code] if the theme does not have it.
 			</description>
 		</method>
 		<method name="set_font">
@@ -531,13 +569,13 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<argument index="2" name="font" type="Font">
 			</argument>
 			<description>
-				Sets the theme's [Font] to [code]font[/code] at [code]name[/code] in [code]node_type[/code].
-				Creates [code]node_type[/code] if the theme does not have it.
+				Sets the theme's [Font] to [code]font[/code] at [code]name[/code] in [code]theme_type[/code].
+				Creates [code]theme_type[/code] if the theme does not have it.
 			</description>
 		</method>
 		<method name="set_font_size">
@@ -545,13 +583,13 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<argument index="2" name="font_size" type="int">
 			</argument>
 			<description>
-				Sets the theme's font size to [code]font_size[/code] at [code]name[/code] in [code]node_type[/code].
-				Creates [code]node_type[/code] if the theme does not have it.
+				Sets the theme's font size to [code]font_size[/code] at [code]name[/code] in [code]theme_type[/code].
+				Creates [code]theme_type[/code] if the theme does not have it.
 			</description>
 		</method>
 		<method name="set_icon">
@@ -559,13 +597,13 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<argument index="2" name="texture" type="Texture2D">
 			</argument>
 			<description>
-				Sets the theme's icon [Texture2D] to [code]texture[/code] at [code]name[/code] in [code]node_type[/code].
-				Creates [code]node_type[/code] if the theme does not have it.
+				Sets the theme's icon [Texture2D] to [code]texture[/code] at [code]name[/code] in [code]theme_type[/code].
+				Creates [code]theme_type[/code] if the theme does not have it.
 			</description>
 		</method>
 		<method name="set_stylebox">
@@ -573,13 +611,13 @@
 			</return>
 			<argument index="0" name="name" type="StringName">
 			</argument>
-			<argument index="1" name="node_type" type="StringName">
+			<argument index="1" name="theme_type" type="StringName">
 			</argument>
 			<argument index="2" name="texture" type="StyleBox">
 			</argument>
 			<description>
-				Sets theme's [StyleBox] to [code]stylebox[/code] at [code]name[/code] in [code]node_type[/code].
-				Creates [code]node_type[/code] if the theme does not have it.
+				Sets theme's [StyleBox] to [code]stylebox[/code] at [code]name[/code] in [code]theme_type[/code].
+				Creates [code]theme_type[/code] if the theme does not have it.
 			</description>
 		</method>
 		<method name="set_theme_item">
@@ -589,14 +627,28 @@
 			</argument>
 			<argument index="1" name="name" type="StringName">
 			</argument>
-			<argument index="2" name="node_type" type="StringName">
+			<argument index="2" name="theme_type" type="StringName">
 			</argument>
 			<argument index="3" name="value" type="Variant">
 			</argument>
 			<description>
-				Sets the theme item of [code]data_type[/code] to [code]value[/code] at [code]name[/code] in [code]node_type[/code].
+				Sets the theme item of [code]data_type[/code] to [code]value[/code] at [code]name[/code] in [code]theme_type[/code].
 				Does nothing if the [code]value[/code] type does not match [code]data_type[/code].
-				Creates [code]node_type[/code] if the theme does not have it.
+				Creates [code]theme_type[/code] if the theme does not have it.
+			</description>
+		</method>
+		<method name="set_type_variation">
+			<return type="void">
+			</return>
+			<argument index="0" name="theme_type" type="StringName">
+			</argument>
+			<argument index="1" name="base_type" type="StringName">
+			</argument>
+			<description>
+				Marks [code]theme_type[/code] as being a variation of [code]base_type[/code].
+				This adds [code]theme_type[/code] as a suggested option for [member Control.theme_type_variation] on a [Control] that is of the [code]base_type[/code] class.
+				Variations can also be nested, i.e. [code]base_type[/code] can be another variation. If a chain of variations ends with a [code]base_type[/code] matching a class of a [Control], the whole chain is going to be suggested as options.
+				Note: Suggestions only show up if this [Theme] is set as the project default theme. See [member ProjectSettings.gui/theme/custom].
 			</description>
 		</method>
 	</methods>

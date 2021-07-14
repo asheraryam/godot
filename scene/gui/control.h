@@ -32,6 +32,7 @@
 #define CONTROL_H
 
 #include "core/math/transform_2d.h"
+#include "core/object/gdvirtual.gen.inc"
 #include "core/templates/rid.h"
 #include "scene/gui/shortcut.h"
 #include "scene/main/canvas_item.h"
@@ -201,6 +202,8 @@ private:
 		Ref<Theme> theme;
 		Control *theme_owner = nullptr;
 		Window *theme_owner_window = nullptr;
+		StringName theme_type_variation;
+
 		String tooltip;
 		CursorShape default_cursor = CURSOR_ARROW;
 
@@ -258,39 +261,26 @@ private:
 	static void _propagate_theme_changed(Node *p_at, Control *p_owner, Window *p_owner_window, bool p_assign = true);
 
 	template <class T>
-	_FORCE_INLINE_ static bool _find_theme_item(Control *p_theme_owner, Window *p_theme_owner_window, T &, T (Theme::*get_func)(const StringName &, const StringName &) const, bool (Theme::*has_func)(const StringName &, const StringName &) const, const StringName &p_name, const StringName &p_node_type);
+	static T get_theme_item_in_types(Control *p_theme_owner, Window *p_theme_owner_window, Theme::DataType p_data_type, const StringName &p_name, List<StringName> p_theme_types);
+	static bool has_theme_item_in_types(Control *p_theme_owner, Window *p_theme_owner_window, Theme::DataType p_data_type, const StringName &p_name, List<StringName> p_theme_types);
+	_FORCE_INLINE_ void _get_theme_type_dependencies(const StringName &p_theme_type, List<StringName> *p_list) const;
 
-	_FORCE_INLINE_ static bool _has_theme_item(Control *p_theme_owner, Window *p_theme_owner_window, bool (Theme::*has_func)(const StringName &, const StringName &) const, const StringName &p_name, const StringName &p_node_type);
-
-	static Ref<Texture2D> get_icons(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type = StringName());
-	static Ref<StyleBox> get_styleboxs(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type = StringName());
-	static Ref<Font> get_fonts(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type = StringName());
-	static int get_font_sizes(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type = StringName());
-	static Color get_colors(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type = StringName());
-	static int get_constants(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type = StringName());
-
-	static bool has_icons(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type = StringName());
-	static bool has_styleboxs(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type = StringName());
-	static bool has_fonts(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type = StringName());
-	static bool has_font_sizes(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type = StringName());
-	static bool has_colors(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type = StringName());
-	static bool has_constants(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type = StringName());
-
+	GDVIRTUAL1RC(bool, _has_point, Vector2)
 protected:
 	virtual void add_child_notify(Node *p_child) override;
 	virtual void remove_child_notify(Node *p_child) override;
 
 	//virtual void _window_gui_input(InputEvent p_event);
 
-	virtual Vector<Vector2i> structured_text_parser(StructuredTextParser p_node_type, const Array &p_args, const String p_text) const;
+	virtual Vector<Vector2i> structured_text_parser(StructuredTextParser p_theme_type, const Array &p_args, const String p_text) const;
 
 	bool _set(const StringName &p_name, const Variant &p_value);
 	bool _get(const StringName &p_name, Variant &r_ret) const;
 	void _get_property_list(List<PropertyInfo> *p_list) const;
 
 	void _notification(int p_notification);
-
 	static void _bind_methods();
+	virtual void _validate_property(PropertyInfo &property) const override;
 
 	//bind helpers
 
@@ -341,7 +331,6 @@ public:
 	virtual Size2 get_minimum_size() const;
 	virtual Size2 get_combined_minimum_size() const;
 	virtual bool has_point(const Point2 &p_point) const;
-	virtual bool clips_input() const;
 	virtual void set_drag_forwarding(Control *p_target);
 	virtual Variant get_drag_data(const Point2 &p_point);
 	virtual bool can_drop_data(const Point2 &p_point, const Variant &p_data) const;
@@ -396,9 +385,7 @@ public:
 	void set_rect(const Rect2 &p_rect); // Reset anchors to begin and set rect, for faster container children sorting.
 
 	void set_rotation(real_t p_radians);
-	void set_rotation_degrees(real_t p_degrees);
 	real_t get_rotation() const;
-	real_t get_rotation_degrees() const;
 
 	void set_h_grow_direction(GrowDirection p_direction);
 	GrowDirection get_h_grow_direction() const;
@@ -414,6 +401,9 @@ public:
 
 	void set_theme(const Ref<Theme> &p_theme);
 	Ref<Theme> get_theme() const;
+
+	void set_theme_type_variation(const StringName &p_theme_type);
+	StringName get_theme_type_variation() const;
 
 	void set_h_size_flags(int p_flags);
 	int get_h_size_flags() const;
@@ -466,12 +456,12 @@ public:
 	void remove_theme_color_override(const StringName &p_name);
 	void remove_theme_constant_override(const StringName &p_name);
 
-	Ref<Texture2D> get_theme_icon(const StringName &p_name, const StringName &p_node_type = StringName()) const;
-	Ref<StyleBox> get_theme_stylebox(const StringName &p_name, const StringName &p_node_type = StringName()) const;
-	Ref<Font> get_theme_font(const StringName &p_name, const StringName &p_node_type = StringName()) const;
-	int get_theme_font_size(const StringName &p_name, const StringName &p_node_type = StringName()) const;
-	Color get_theme_color(const StringName &p_name, const StringName &p_node_type = StringName()) const;
-	int get_theme_constant(const StringName &p_name, const StringName &p_node_type = StringName()) const;
+	Ref<Texture2D> get_theme_icon(const StringName &p_name, const StringName &p_theme_type = StringName()) const;
+	Ref<StyleBox> get_theme_stylebox(const StringName &p_name, const StringName &p_theme_type = StringName()) const;
+	Ref<Font> get_theme_font(const StringName &p_name, const StringName &p_theme_type = StringName()) const;
+	int get_theme_font_size(const StringName &p_name, const StringName &p_theme_type = StringName()) const;
+	Color get_theme_color(const StringName &p_name, const StringName &p_theme_type = StringName()) const;
+	int get_theme_constant(const StringName &p_name, const StringName &p_theme_type = StringName()) const;
 
 	bool has_theme_icon_override(const StringName &p_name) const;
 	bool has_theme_stylebox_override(const StringName &p_name) const;
@@ -480,12 +470,12 @@ public:
 	bool has_theme_color_override(const StringName &p_name) const;
 	bool has_theme_constant_override(const StringName &p_name) const;
 
-	bool has_theme_icon(const StringName &p_name, const StringName &p_node_type = StringName()) const;
-	bool has_theme_stylebox(const StringName &p_name, const StringName &p_node_type = StringName()) const;
-	bool has_theme_font(const StringName &p_name, const StringName &p_node_type = StringName()) const;
-	bool has_theme_font_size(const StringName &p_name, const StringName &p_node_type = StringName()) const;
-	bool has_theme_color(const StringName &p_name, const StringName &p_node_type = StringName()) const;
-	bool has_theme_constant(const StringName &p_name, const StringName &p_node_type = StringName()) const;
+	bool has_theme_icon(const StringName &p_name, const StringName &p_theme_type = StringName()) const;
+	bool has_theme_stylebox(const StringName &p_name, const StringName &p_theme_type = StringName()) const;
+	bool has_theme_font(const StringName &p_name, const StringName &p_theme_type = StringName()) const;
+	bool has_theme_font_size(const StringName &p_name, const StringName &p_theme_type = StringName()) const;
+	bool has_theme_color(const StringName &p_name, const StringName &p_theme_type = StringName()) const;
+	bool has_theme_constant(const StringName &p_name, const StringName &p_theme_type = StringName()) const;
 
 	/* TOOLTIP */
 

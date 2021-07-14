@@ -42,6 +42,7 @@
 #include "scene/resources/packed_scene.h"
 
 void GDScriptWorkspace::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("didDeleteFiles"), &GDScriptWorkspace::did_delete_files);
 	ClassDB::bind_method(D_METHOD("symbol"), &GDScriptWorkspace::symbol);
 	ClassDB::bind_method(D_METHOD("parse_script", "path", "content"), &GDScriptWorkspace::parse_script);
 	ClassDB::bind_method(D_METHOD("parse_local_script", "path"), &GDScriptWorkspace::parse_local_script);
@@ -49,6 +50,16 @@ void GDScriptWorkspace::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_file_uri", "path"), &GDScriptWorkspace::get_file_uri);
 	ClassDB::bind_method(D_METHOD("publish_diagnostics", "path"), &GDScriptWorkspace::publish_diagnostics);
 	ClassDB::bind_method(D_METHOD("generate_script_api", "path"), &GDScriptWorkspace::generate_script_api);
+}
+
+void GDScriptWorkspace::did_delete_files(const Dictionary &p_params) {
+	Array files = p_params["files"];
+	for (int i = 0; i < files.size(); ++i) {
+		Dictionary file = files[i];
+		String uri = file["uri"];
+		String path = get_file_path(uri);
+		parse_script(path, "");
+	}
 }
 
 void GDScriptWorkspace::remove_cache_parser(const String &p_path) {
@@ -177,7 +188,9 @@ Array GDScriptWorkspace::symbol(const Dictionary &p_params) {
 			E->get()->get_symbols().symbol_tree_as_list(E->key(), script_symbols);
 			for (int i = 0; i < script_symbols.size(); ++i) {
 				if (query.is_subsequence_ofi(script_symbols[i].name)) {
-					arr.push_back(script_symbols[i].to_json());
+					lsp::DocumentedSymbolInformation symbol = script_symbols[i];
+					symbol.location.uri = get_file_uri(symbol.location.uri);
+					arr.push_back(symbol.to_json());
 				}
 			}
 		}
@@ -413,7 +426,7 @@ Node *GDScriptWorkspace::_get_owner_scene_node(String p_path) {
 		RES owner_res = ResourceLoader::load(owner_path);
 		if (Object::cast_to<PackedScene>(owner_res.ptr())) {
 			Ref<PackedScene> owner_packed_scene = Ref<PackedScene>(Object::cast_to<PackedScene>(*owner_res));
-			owner_scene_node = owner_packed_scene->instance();
+			owner_scene_node = owner_packed_scene->instantiate();
 			break;
 		}
 	}

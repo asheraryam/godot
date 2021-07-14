@@ -62,12 +62,6 @@ void GridMapEditor::_menu_option(int p_option) {
 			floor->set_value(floor->get_value() + 1);
 		} break;
 
-		case MENU_OPTION_LOCK_VIEW: {
-			int index = options->get_popup()->get_item_index(MENU_OPTION_LOCK_VIEW);
-			lock_view = !options->get_popup()->is_item_checked(index);
-
-			options->get_popup()->set_item_checked(index, lock_view);
-		} break;
 		case MENU_OPTION_CLIP_DISABLED:
 		case MENU_OPTION_CLIP_ABOVE:
 		case MENU_OPTION_CLIP_BELOW: {
@@ -255,7 +249,7 @@ void GridMapEditor::_menu_option(int p_option) {
 }
 
 void GridMapEditor::_update_cursor_transform() {
-	cursor_transform = Transform();
+	cursor_transform = Transform3D();
 	cursor_transform.origin = cursor_origin;
 	cursor_transform.basis.set_orthogonal_index(cursor_rot);
 	cursor_transform.basis *= node->get_cell_scale();
@@ -268,7 +262,7 @@ void GridMapEditor::_update_cursor_transform() {
 }
 
 void GridMapEditor::_update_selection_transform() {
-	Transform xf_zero;
+	Transform3D xf_zero;
 	xf_zero.basis.set_zero();
 
 	if (!selection.active) {
@@ -279,7 +273,7 @@ void GridMapEditor::_update_selection_transform() {
 		return;
 	}
 
-	Transform xf;
+	Transform3D xf;
 	xf.scale((Vector3(1, 1, 1) + (selection.end - selection.begin)) * node->get_cell_size());
 	xf.origin = selection.begin * node->get_cell_size();
 
@@ -297,7 +291,7 @@ void GridMapEditor::_update_selection_transform() {
 			scale *= node->get_cell_size();
 			position *= node->get_cell_size();
 
-			Transform xf2;
+			Transform3D xf2;
 			xf2.basis.scale(scale);
 			xf2.origin = position;
 
@@ -362,7 +356,7 @@ bool GridMapEditor::do_input_action(Camera3D *p_camera, const Point2 &p_point, b
 	Camera3D *camera = p_camera;
 	Vector3 from = camera->project_ray_origin(p_point);
 	Vector3 normal = camera->project_ray_normal(p_point);
-	Transform local_xform = node->get_global_transform().affine_inverse();
+	Transform3D local_xform = node->get_global_transform().affine_inverse();
 	Vector<Plane> planes = camera->get_frustum();
 	from = local_xform.xform(from);
 	normal = local_xform.basis.xform(normal).normalized();
@@ -540,7 +534,7 @@ void GridMapEditor::_set_clipboard_data() {
 
 void GridMapEditor::_update_paste_indicator() {
 	if (input_action != INPUT_PASTE) {
-		Transform xf;
+		Transform3D xf;
 		xf.basis.set_zero();
 		RenderingServer::get_singleton()->instance_set_transform(paste_instance, xf);
 		return;
@@ -548,7 +542,7 @@ void GridMapEditor::_update_paste_indicator() {
 
 	Vector3 center = 0.5 * Vector3(real_t(node->get_center_x()), real_t(node->get_center_y()), real_t(node->get_center_z()));
 	Vector3 scale = (Vector3(1, 1, 1) + (paste_indicator.end - paste_indicator.begin)) * node->get_cell_size();
-	Transform xf;
+	Transform3D xf;
 	xf.scale(scale);
 	xf.origin = (paste_indicator.begin + (paste_indicator.current - paste_indicator.click) + center) * node->get_cell_size();
 	Basis rot;
@@ -561,7 +555,7 @@ void GridMapEditor::_update_paste_indicator() {
 	for (List<ClipboardItem>::Element *E = clipboard_items.front(); E; E = E->next()) {
 		ClipboardItem &item = E->get();
 
-		xf = Transform();
+		xf = Transform3D();
 		xf.origin = (paste_indicator.begin + (paste_indicator.current - paste_indicator.click) + center) * node->get_cell_size();
 		xf.basis = rot * xf.basis;
 		xf.translate(item.grid_offset * node->get_cell_size());
@@ -615,13 +609,13 @@ bool GridMapEditor::forward_spatial_input_event(Camera3D *p_camera, const Ref<In
 	Ref<InputEventMouseButton> mb = p_event;
 
 	if (mb.is_valid()) {
-		if (mb->get_button_index() == MOUSE_BUTTON_WHEEL_UP && (mb->get_command() || mb->get_shift())) {
+		if (mb->get_button_index() == MOUSE_BUTTON_WHEEL_UP && (mb->is_command_pressed() || mb->is_shift_pressed())) {
 			if (mb->is_pressed()) {
 				floor->set_value(floor->get_value() + mb->get_factor());
 			}
 
 			return true; // Eaten.
-		} else if (mb->get_button_index() == MOUSE_BUTTON_WHEEL_DOWN && (mb->get_command() || mb->get_shift())) {
+		} else if (mb->get_button_index() == MOUSE_BUTTON_WHEEL_DOWN && (mb->is_command_pressed() || mb->is_shift_pressed())) {
 			if (mb->is_pressed()) {
 				floor->set_value(floor->get_value() - mb->get_factor());
 			}
@@ -630,7 +624,7 @@ bool GridMapEditor::forward_spatial_input_event(Camera3D *p_camera, const Ref<In
 
 		if (mb->is_pressed()) {
 			Node3DEditorViewport::NavigationScheme nav_scheme = (Node3DEditorViewport::NavigationScheme)EditorSettings::get_singleton()->get("editors/3d/navigation/navigation_scheme").operator int();
-			if ((nav_scheme == Node3DEditorViewport::NAVIGATION_MAYA || nav_scheme == Node3DEditorViewport::NAVIGATION_MODO) && mb->get_alt()) {
+			if ((nav_scheme == Node3DEditorViewport::NAVIGATION_MAYA || nav_scheme == Node3DEditorViewport::NAVIGATION_MODO) && mb->is_alt_pressed()) {
 				input_action = INPUT_NONE;
 			} else if (mb->get_button_index() == MOUSE_BUTTON_LEFT) {
 				bool can_edit = (node && node->get_mesh_library().is_valid());
@@ -638,10 +632,10 @@ bool GridMapEditor::forward_spatial_input_event(Camera3D *p_camera, const Ref<In
 					_do_paste();
 					input_action = INPUT_NONE;
 					_update_paste_indicator();
-				} else if (mb->get_shift() && can_edit) {
+				} else if (mb->is_shift_pressed() && can_edit) {
 					input_action = INPUT_SELECT;
 					last_selection = selection;
-				} else if (mb->get_command() && can_edit) {
+				} else if (mb->is_command_pressed() && can_edit) {
 					input_action = INPUT_PICK;
 				} else {
 					input_action = INPUT_PAINT;
@@ -732,7 +726,7 @@ bool GridMapEditor::forward_spatial_input_event(Camera3D *p_camera, const Ref<In
 				}
 			}
 
-			if (k->get_shift() && selection.active && input_action != INPUT_PASTE) {
+			if (k->is_shift_pressed() && selection.active && input_action != INPUT_PASTE) {
 				if (k->get_keycode() == options->get_popup()->get_item_accelerator(options->get_popup()->get_item_index(MENU_OPTION_PREV_LEVEL))) {
 					selection.click[edit_axis]--;
 					_validate_selection();
@@ -749,7 +743,7 @@ bool GridMapEditor::forward_spatial_input_event(Camera3D *p_camera, const Ref<In
 
 	Ref<InputEventPanGesture> pan_gesture = p_event;
 	if (pan_gesture.is_valid()) {
-		if (pan_gesture->get_alt() && (pan_gesture->get_command() || pan_gesture->get_shift())) {
+		if (pan_gesture->is_alt_pressed() && (pan_gesture->is_command_pressed() || pan_gesture->is_shift_pressed())) {
 			const real_t delta = pan_gesture->get_delta().y * 0.5;
 			accumulated_floor_delta += delta;
 			int step = 0;
@@ -810,7 +804,7 @@ void GridMapEditor::_mesh_library_palette_input(const Ref<InputEvent> &p_ie) {
 	const Ref<InputEventMouseButton> mb = p_ie;
 
 	// Zoom in/out using Ctrl + mouse wheel
-	if (mb.is_valid() && mb->is_pressed() && mb->get_command()) {
+	if (mb.is_valid() && mb->is_pressed() && mb->is_command_pressed()) {
 		if (mb->is_pressed() && mb->get_button_index() == MOUSE_BUTTON_WHEEL_UP) {
 			size_slider->set_value(size_slider->get_value() + 0.2);
 		}
@@ -1068,7 +1062,7 @@ void GridMapEditor::_notification(int p_what) {
 				return;
 			}
 
-			Transform xf = node->get_global_transform();
+			Transform3D xf = node->get_global_transform();
 
 			if (xf != grid_xform) {
 				for (int i = 0; i < 3; i++) {
@@ -1080,25 +1074,21 @@ void GridMapEditor::_notification(int p_what) {
 			if (cgmt.operator->() != last_mesh_library) {
 				update_palette();
 			}
-
-			if (lock_view) {
-				EditorNode *editor = Object::cast_to<EditorNode>(get_tree()->get_root()->get_child(0));
-
-				Plane p;
-				p.normal[edit_axis] = 1.0;
-				p.d = edit_floor[edit_axis] * node->get_cell_size()[edit_axis];
-				p = node->get_transform().xform(p); // plane to snap
-
-				Node3DEditorPlugin *sep = Object::cast_to<Node3DEditorPlugin>(editor->get_editor_plugin_screen());
-				if (sep) {
-					sep->snap_cursor_to_plane(p);
-				}
-			}
 		} break;
 
 		case NOTIFICATION_THEME_CHANGED: {
 			options->set_icon(get_theme_icon("GridMap", "EditorIcons"));
 			search_box->set_right_icon(get_theme_icon("Search", "EditorIcons"));
+		} break;
+
+		case NOTIFICATION_APPLICATION_FOCUS_OUT: {
+			if (input_action == INPUT_PAINT) {
+				// Simulate mouse released event to stop drawing when editor focus exists.
+				Ref<InputEventMouseButton> release;
+				release.instantiate();
+				release->set_button_index(MOUSE_BUTTON_LEFT);
+				forward_spatial_input_event(nullptr, release);
+			}
 		} break;
 	}
 }
@@ -1187,8 +1177,6 @@ GridMapEditor::GridMapEditor(EditorNode *p_editor) {
 	spatial_editor_hb->hide();
 
 	options->set_text(TTR("Grid Map"));
-	options->get_popup()->add_check_item(TTR("Snap View"), MENU_OPTION_LOCK_VIEW);
-	options->get_popup()->add_separator();
 	options->get_popup()->add_item(TTR("Previous Floor"), MENU_OPTION_PREV_LEVEL, KEY_Q);
 	options->get_popup()->add_item(TTR("Next Floor"), MENU_OPTION_NEXT_LEVEL, KEY_E);
 	options->get_popup()->add_separator();
@@ -1283,7 +1271,7 @@ GridMapEditor::GridMapEditor(EditorNode *p_editor) {
 	info_message->set_text(TTR("Give a MeshLibrary resource to this GridMap to use its meshes."));
 	info_message->set_valign(Label::VALIGN_CENTER);
 	info_message->set_align(Label::ALIGN_CENTER);
-	info_message->set_autowrap(true);
+	info_message->set_autowrap_mode(Label::AUTOWRAP_WORD_SMART);
 	info_message->set_custom_minimum_size(Size2(100 * EDSCALE, 0));
 	info_message->set_anchors_and_offsets_preset(PRESET_WIDE, PRESET_MODE_KEEP_SIZE, 8 * EDSCALE);
 	mesh_library_palette->add_child(info_message);
@@ -1368,7 +1356,7 @@ GridMapEditor::GridMapEditor(EditorNode *p_editor) {
 		Array d;
 		d.resize(RS::ARRAY_MAX);
 
-		inner_mat.instance();
+		inner_mat.instantiate();
 		inner_mat->set_albedo(Color(0.7, 0.7, 1.0, 0.2));
 		inner_mat->set_shading_mode(StandardMaterial3D::SHADING_MODE_UNSHADED);
 		inner_mat->set_transparency(StandardMaterial3D::TRANSPARENCY_ALPHA);
@@ -1377,14 +1365,14 @@ GridMapEditor::GridMapEditor(EditorNode *p_editor) {
 		RenderingServer::get_singleton()->mesh_add_surface_from_arrays(selection_mesh, RS::PRIMITIVE_TRIANGLES, d);
 		RenderingServer::get_singleton()->mesh_surface_set_material(selection_mesh, 0, inner_mat->get_rid());
 
-		outer_mat.instance();
+		outer_mat.instantiate();
 		outer_mat->set_albedo(Color(0.7, 0.7, 1.0, 0.8));
 		outer_mat->set_on_top_of_alpha();
 
 		outer_mat->set_shading_mode(StandardMaterial3D::SHADING_MODE_UNSHADED);
 		outer_mat->set_transparency(StandardMaterial3D::TRANSPARENCY_ALPHA);
 
-		selection_floor_mat.instance();
+		selection_floor_mat.instantiate();
 		selection_floor_mat->set_albedo(Color(0.80, 0.80, 1.0, 1));
 		selection_floor_mat->set_on_top_of_alpha();
 		selection_floor_mat->set_shading_mode(StandardMaterial3D::SHADING_MODE_UNSHADED);
@@ -1411,7 +1399,7 @@ GridMapEditor::GridMapEditor(EditorNode *p_editor) {
 
 	_set_selection(false);
 
-	indicator_mat.instance();
+	indicator_mat.instantiate();
 	indicator_mat->set_shading_mode(StandardMaterial3D::SHADING_MODE_UNSHADED);
 	indicator_mat->set_transparency(StandardMaterial3D::TRANSPARENCY_ALPHA);
 	indicator_mat->set_flag(StandardMaterial3D::FLAG_SRGB_VERTEX_COLOR, true);

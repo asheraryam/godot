@@ -31,9 +31,9 @@
 #include "filesystem_dock.h"
 
 #include "core/config/project_settings.h"
+#include "core/io/dir_access.h"
+#include "core/io/file_access.h"
 #include "core/io/resource_loader.h"
-#include "core/os/dir_access.h"
-#include "core/os/file_access.h"
 #include "core/os/keyboard.h"
 #include "core/os/os.h"
 #include "core/templates/list.h"
@@ -180,12 +180,12 @@ Vector<String> FileSystemDock::_compute_uncollapsed_paths() {
 	Vector<String> uncollapsed_paths;
 	TreeItem *root = tree->get_root();
 	if (root) {
-		TreeItem *favorites_item = root->get_children();
+		TreeItem *favorites_item = root->get_first_child();
 		if (!favorites_item->is_collapsed()) {
 			uncollapsed_paths.push_back(favorites_item->get_metadata(0));
 		}
 
-		TreeItem *resTree = root->get_children()->get_next();
+		TreeItem *resTree = root->get_first_child()->get_next();
 		if (resTree) {
 			Vector<TreeItem *> needs_check;
 			needs_check.push_back(resTree);
@@ -193,7 +193,7 @@ Vector<String> FileSystemDock::_compute_uncollapsed_paths() {
 			while (needs_check.size()) {
 				if (!needs_check[0]->is_collapsed()) {
 					uncollapsed_paths.push_back(needs_check[0]->get_metadata(0));
-					TreeItem *child = needs_check[0]->get_children();
+					TreeItem *child = needs_check[0]->get_first_child();
 					while (child) {
 						needs_check.push_back(child);
 						child = child->get_next();
@@ -365,7 +365,7 @@ void FileSystemDock::_notification(int p_what) {
 			file_list_popup->connect("id_pressed", callable_mp(this, &FileSystemDock::_file_list_rmb_option));
 			tree_popup->connect("id_pressed", callable_mp(this, &FileSystemDock::_tree_rmb_option));
 
-			current_path->connect("text_entered", callable_mp(this, &FileSystemDock::_navigate_to_path), make_binds(false));
+			current_path->connect("text_submitted", callable_mp(this, &FileSystemDock::_navigate_to_path), make_binds(false));
 
 			always_show_folders = bool(EditorSettings::get_singleton()->get("docks/filesystem/always_show_folders"));
 
@@ -464,7 +464,7 @@ void FileSystemDock::_tree_multi_selected(Object *p_item, int p_column, bool p_s
 		return;
 	}
 
-	TreeItem *favorites_item = tree->get_root()->get_children();
+	TreeItem *favorites_item = tree->get_root()->get_first_child();
 	if (selected->get_parent() == favorites_item && !String(selected->get_metadata(0)).ends_with("/")) {
 		// Go to the favorites if we click in the favorites and the path has changed.
 		path = "Favorites";
@@ -815,7 +815,8 @@ void FileSystemDock::_update_file_list(bool p_keep_selection) {
 
 		if (searched_string.length() > 0) {
 			// Display the search results.
-			_search(EditorFileSystem::get_singleton()->get_filesystem(), &file_list, 128);
+			// Limit the number of results displayed to avoid an infinite loop.
+			_search(EditorFileSystem::get_singleton()->get_filesystem(), &file_list, 10000);
 		} else {
 			if (display_mode == DISPLAY_MODE_TREE_ONLY || always_show_folders) {
 				// Display folders in the list.
@@ -860,7 +861,6 @@ void FileSystemDock::_update_file_list(bool p_keep_selection) {
 				file_list.push_back(fi);
 			}
 		}
-		file_list.sort();
 	}
 
 	// Sort the file list if needed.
@@ -946,7 +946,7 @@ void FileSystemDock::_select_file(const String &p_path, bool p_select_in_favorit
 	} else if (fpath != "Favorites") {
 		if (FileAccess::exists(fpath + ".import")) {
 			Ref<ConfigFile> config;
-			config.instance();
+			config.instantiate();
 			Error err = config->load(fpath + ".import");
 			if (err == OK) {
 				if (config->has_section_key("remap", "importer")) {
@@ -1465,6 +1465,10 @@ void FileSystemDock::_folder_removed(String p_folder) {
 	}
 
 	current_path->set_text(path);
+	EditorFileSystemDirectory *efd = EditorFileSystem::get_singleton()->get_filesystem_path(path);
+	if (efd) {
+		efd->force_update();
+	}
 }
 
 void FileSystemDock::_rename_operation_confirm() {
@@ -1640,7 +1644,7 @@ Vector<String> FileSystemDock::_tree_get_selected(bool remove_self_inclusion) {
 	// Build a list of selected items with the active one at the first position.
 	Vector<String> selected_strings;
 
-	TreeItem *favorites_item = tree->get_root()->get_children();
+	TreeItem *favorites_item = tree->get_root()->get_first_child();
 	TreeItem *active_selected = tree->get_selected();
 	if (active_selected && active_selected != favorites_item) {
 		selected_strings.push_back(active_selected->get_metadata(0));
@@ -1696,7 +1700,7 @@ void FileSystemDock::_tree_rmb_option(int p_option) {
 				while (needs_check.size()) {
 					needs_check[0]->set_collapsed(is_collapsed);
 
-					TreeItem *child = needs_check[0]->get_children();
+					TreeItem *child = needs_check[0]->get_first_child();
 					while (child) {
 						needs_check.push_back(child);
 						child = child->get_next();
@@ -2023,7 +2027,17 @@ void FileSystemDock::fix_dependencies(const String &p_for_file) {
 }
 
 void FileSystemDock::focus_on_filter() {
-	file_list_search_box->grab_focus();
+	LineEdit *current_search_box = nullptr;
+	if (display_mode == DISPLAY_MODE_TREE_ONLY) {
+		current_search_box = tree_search_box;
+	} else if (display_mode == DISPLAY_MODE_SPLIT) {
+		current_search_box = file_list_search_box;
+	}
+
+	if (current_search_box) {
+		current_search_box->grab_focus();
+		current_search_box->select_all();
+	}
 }
 
 void FileSystemDock::set_file_list_display_mode(FileListDisplayMode p_mode) {
@@ -2044,13 +2058,13 @@ Variant FileSystemDock::get_drag_data_fw(const Point2 &p_point, Control *p_from)
 		// Check if the first selected is in favorite.
 		TreeItem *selected = tree->get_next_selected(tree->get_root());
 		while (selected) {
-			TreeItem *favorites_item = tree->get_root()->get_children();
+			TreeItem *favorites_item = tree->get_root()->get_first_child();
 			if (selected == favorites_item) {
 				// The "Favorites" item is not draggable.
 				return Variant();
 			}
 
-			bool is_favorite = selected->get_parent() != nullptr && tree->get_root()->get_children() == selected->get_parent();
+			bool is_favorite = selected->get_parent() != nullptr && tree->get_root()->get_first_child() == selected->get_parent();
 			all_favorites &= is_favorite;
 			all_not_favorites &= !is_favorite;
 			selected = tree->get_next_selected(selected);
@@ -2096,7 +2110,7 @@ bool FileSystemDock::can_drop_data_fw(const Point2 &p_point, const Variant &p_da
 		}
 
 		int drop_section = tree->get_drop_section_at_position(p_point);
-		TreeItem *favorites_item = tree->get_root()->get_children();
+		TreeItem *favorites_item = tree->get_root()->get_first_child();
 
 		TreeItem *resources_item = favorites_item->get_next();
 
@@ -2172,7 +2186,7 @@ void FileSystemDock::drop_data_fw(const Point2 &p_point, const Variant &p_data, 
 
 		int drop_position;
 		Vector<String> files = drag_data["files"];
-		TreeItem *favorites_item = tree->get_root()->get_children();
+		TreeItem *favorites_item = tree->get_root()->get_first_child();
 		TreeItem *resources_item = favorites_item->get_next();
 
 		if (ti == favorites_item) {
@@ -2246,7 +2260,7 @@ void FileSystemDock::drop_data_fw(const Point2 &p_point, const Variant &p_data, 
 				}
 			}
 			if (!to_move.is_empty()) {
-				if (Input::get_singleton()->is_key_pressed(KEY_CONTROL)) {
+				if (Input::get_singleton()->is_key_pressed(KEY_CTRL)) {
 					for (int i = 0; i < to_move.size(); i++) {
 						String new_path;
 						String new_path_base;
@@ -2310,10 +2324,10 @@ void FileSystemDock::_get_drag_target_folder(String &target, bool &target_favori
 		int section = tree->get_drop_section_at_position(p_point);
 		if (ti) {
 			// Check the favorites first.
-			if (ti == tree->get_root()->get_children() && section >= 0) {
+			if (ti == tree->get_root()->get_first_child() && section >= 0) {
 				target_favorites = true;
 				return;
-			} else if (ti->get_parent() == tree->get_root()->get_children()) {
+			} else if (ti->get_parent() == tree->get_root()->get_first_child()) {
 				target_favorites = true;
 				return;
 			} else {
@@ -2329,7 +2343,7 @@ void FileSystemDock::_get_drag_target_folder(String &target, bool &target_favori
 						return;
 					}
 				} else {
-					if (ti->get_parent() != tree->get_root()->get_children()) {
+					if (ti->get_parent() != tree->get_root()->get_first_child()) {
 						// Not in the favorite section.
 						if (fpath != "res://") {
 							// We drop between two files
@@ -2572,6 +2586,8 @@ void FileSystemDock::_tree_gui_input(Ref<InputEvent> p_event) {
 			_tree_rmb_option(FILE_REMOVE);
 		} else if (ED_IS_SHORTCUT("filesystem_dock/rename", p_event)) {
 			_tree_rmb_option(FILE_RENAME);
+		} else if (ED_IS_SHORTCUT("editor/open_search", p_event)) {
+			focus_on_filter();
 		} else {
 			return;
 		}
@@ -2591,6 +2607,8 @@ void FileSystemDock::_file_list_gui_input(Ref<InputEvent> p_event) {
 			_file_list_rmb_option(FILE_REMOVE);
 		} else if (ED_IS_SHORTCUT("filesystem_dock/rename", p_event)) {
 			_file_list_rmb_option(FILE_RENAME);
+		} else if (ED_IS_SHORTCUT("editor/open_search", p_event)) {
+			focus_on_filter();
 		} else {
 			return;
 		}
@@ -2654,7 +2672,7 @@ void FileSystemDock::_update_import_dock() {
 	for (int i = 0; i < efiles.size(); i++) {
 		String fpath = efiles[i];
 		Ref<ConfigFile> cf;
-		cf.instance();
+		cf.instantiate();
 		Error err = cf->load(fpath + ".import");
 		if (err != OK) {
 			imports.clear();
@@ -2713,12 +2731,12 @@ MenuButton *FileSystemDock::_create_file_menu_button() {
 
 	PopupMenu *p = button->get_popup();
 	p->connect("id_pressed", callable_mp(this, &FileSystemDock::_file_sort_popup));
-	p->add_radio_check_item("Sort by Name (Ascending)", FILE_SORT_NAME);
-	p->add_radio_check_item("Sort by Name (Descending)", FILE_SORT_NAME_REVERSE);
-	p->add_radio_check_item("Sort by Type (Ascending)", FILE_SORT_TYPE);
-	p->add_radio_check_item("Sort by Type (Descending)", FILE_SORT_TYPE_REVERSE);
-	p->add_radio_check_item("Sort by Last Modified", FILE_SORT_MODIFIED_TIME);
-	p->add_radio_check_item("Sort by First Modified", FILE_SORT_MODIFIED_TIME_REVERSE);
+	p->add_radio_check_item(TTR("Sort by Name (Ascending)"), FILE_SORT_NAME);
+	p->add_radio_check_item(TTR("Sort by Name (Descending)"), FILE_SORT_NAME_REVERSE);
+	p->add_radio_check_item(TTR("Sort by Type (Ascending)"), FILE_SORT_TYPE);
+	p->add_radio_check_item(TTR("Sort by Type (Descending)"), FILE_SORT_TYPE_REVERSE);
+	p->add_radio_check_item(TTR("Sort by Last Modified"), FILE_SORT_MODIFIED_TIME);
+	p->add_radio_check_item(TTR("Sort by First Modified"), FILE_SORT_MODIFIED_TIME_REVERSE);
 	p->set_item_checked(file_sort, true);
 	return button;
 }
@@ -2730,9 +2748,9 @@ void FileSystemDock::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_tree_thumbnail_done"), &FileSystemDock::_tree_thumbnail_done);
 	ClassDB::bind_method(D_METHOD("_select_file"), &FileSystemDock::_select_file);
 
-	ClassDB::bind_method(D_METHOD("get_drag_data_fw", "position", "from"), &FileSystemDock::get_drag_data_fw);
-	ClassDB::bind_method(D_METHOD("can_drop_data_fw", "position", "data", "from"), &FileSystemDock::can_drop_data_fw);
-	ClassDB::bind_method(D_METHOD("drop_data_fw", "position", "data", "from"), &FileSystemDock::drop_data_fw);
+	ClassDB::bind_method(D_METHOD("_get_drag_data_fw", "position", "from"), &FileSystemDock::get_drag_data_fw);
+	ClassDB::bind_method(D_METHOD("_can_drop_data_fw", "position", "data", "from"), &FileSystemDock::can_drop_data_fw);
+	ClassDB::bind_method(D_METHOD("_drop_data_fw", "position", "data", "from"), &FileSystemDock::drop_data_fw);
 	ClassDB::bind_method(D_METHOD("navigate_to_path", "path"), &FileSystemDock::navigate_to_path);
 
 	ClassDB::bind_method(D_METHOD("_update_import_dock"), &FileSystemDock::_update_import_dock);
@@ -2756,22 +2774,7 @@ FileSystemDock::FileSystemDock(EditorNode *p_editor) {
 	// `KEY_MASK_CMD | KEY_C` conflicts with other editor shortcuts.
 	ED_SHORTCUT("filesystem_dock/copy_path", TTR("Copy Path"), KEY_MASK_CMD | KEY_MASK_SHIFT | KEY_C);
 	ED_SHORTCUT("filesystem_dock/duplicate", TTR("Duplicate..."), KEY_MASK_CMD | KEY_D);
-
-#if defined(WINDOWS_ENABLED)
-	// TRANSLATORS: This string is only used on Windows, as it refers to the system trash
-	// as "Recycle Bin" instead of "Trash". Make sure to use the translation of "Recycle Bin"
-	// recommended by Microsoft for the target language.
-	ED_SHORTCUT("filesystem_dock/delete", TTR("Move to Recycle Bin"), KEY_DELETE);
-#elif defined(OSX_ENABLED)
-	// TRANSLATORS: This string is only used on macOS, as it refers to the system trash
-	// as "Bin" instead of "Trash". Make sure to use the translation of "Bin"
-	// recommended by Apple for the target language.
-	ED_SHORTCUT("filesystem_dock/delete", TTR("Move to Bin"), KEY_DELETE);
-#else
-	// TRANSLATORS: This string is only used on platforms other than Windows and macOS.
-	ED_SHORTCUT("filesystem_dock/delete", TTR("Move to Trash"), KEY_DELETE);
-#endif
-
+	ED_SHORTCUT("filesystem_dock/delete", TTR("Delete"), KEY_DELETE);
 	ED_SHORTCUT("filesystem_dock/rename", TTR("Rename..."), KEY_F2);
 
 	VBoxContainer *top_vbc = memnew(VBoxContainer);
@@ -2802,7 +2805,6 @@ FileSystemDock::FileSystemDock(EditorNode *p_editor) {
 	toolbar_hbc->add_child(current_path);
 
 	button_reload = memnew(Button);
-	button_reload->set_flat(true);
 	button_reload->connect("pressed", callable_mp(this, &FileSystemDock::_rescan));
 	button_reload->set_focus_mode(FOCUS_NONE);
 	button_reload->set_tooltip(TTR("Re-Scan Filesystem"));
@@ -2810,11 +2812,11 @@ FileSystemDock::FileSystemDock(EditorNode *p_editor) {
 	toolbar_hbc->add_child(button_reload);
 
 	button_toggle_display_mode = memnew(Button);
-	button_toggle_display_mode->set_flat(true);
 	button_toggle_display_mode->set_toggle_mode(true);
 	button_toggle_display_mode->connect("toggled", callable_mp(this, &FileSystemDock::_toggle_split_mode));
 	button_toggle_display_mode->set_focus_mode(FOCUS_NONE);
 	button_toggle_display_mode->set_tooltip(TTR("Toggle Split Mode"));
+	button_toggle_display_mode->set_flat(true);
 	toolbar_hbc->add_child(button_toggle_display_mode);
 
 	toolbar2_hbc = memnew(HBoxContainer);

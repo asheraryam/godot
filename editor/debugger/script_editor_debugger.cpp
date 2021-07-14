@@ -220,7 +220,7 @@ void ScriptEditorDebugger::_file_selected(const String &p_file) {
 			file->store_csv_line(headers);
 
 			if (vmem_tree->get_root()) {
-				TreeItem *ti = vmem_tree->get_root()->get_children();
+				TreeItem *ti = vmem_tree->get_root()->get_first_child();
 				while (ti) {
 					Vector<String> values;
 					values.resize(vmem_tree->get_columns());
@@ -1319,7 +1319,7 @@ bool ScriptEditorDebugger::is_skip_breakpoints() {
 void ScriptEditorDebugger::_error_activated() {
 	TreeItem *selected = error_tree->get_selected();
 
-	TreeItem *ci = selected->get_children();
+	TreeItem *ci = selected->get_first_child();
 	if (ci) {
 		selected->set_collapsed(!selected->is_collapsed());
 	}
@@ -1341,7 +1341,7 @@ void ScriptEditorDebugger::_expand_errors_list() {
 		return;
 	}
 
-	TreeItem *item = root->get_children();
+	TreeItem *item = root->get_first_child();
 	while (item) {
 		item->set_collapsed(false);
 		item = item->get_next();
@@ -1354,7 +1354,7 @@ void ScriptEditorDebugger::_collapse_errors_list() {
 		return;
 	}
 
-	TreeItem *item = root->get_children();
+	TreeItem *item = root->get_first_child();
 	while (item) {
 		item->set_collapsed(true);
 		item = item->get_next();
@@ -1403,7 +1403,7 @@ void ScriptEditorDebugger::_item_menu_id_pressed(int p_option) {
 			int rpad_len = text.length();
 
 			text = type + text + ti->get_text(1) + "\n";
-			TreeItem *ci = ti->get_children();
+			TreeItem *ci = ti->get_first_child();
 			while (ci) {
 				text += "  " + ci->get_text(0).rpad(rpad_len) + ci->get_text(1) + "\n";
 				ci = ci->get_next();
@@ -1419,7 +1419,7 @@ void ScriptEditorDebugger::_item_menu_id_pressed(int p_option) {
 			}
 
 			// We only need the first child here (C++ source stack trace).
-			TreeItem *ci = ti->get_children();
+			TreeItem *ci = ti->get_first_child();
 			// Parse back the `file:line @ method()` string.
 			const Vector<String> file_line_number = ci->get_text(1).split("@")[0].strip_edges().split(":");
 			ERR_FAIL_COND_MSG(file_line_number.size() < 2, "Incorrect C++ source stack trace file:line format (please report).");
@@ -1535,7 +1535,7 @@ ScriptEditorDebugger::ScriptEditorDebugger(EditorNode *p_editor) {
 		reason->set_text("");
 		hbc->add_child(reason);
 		reason->set_h_size_flags(SIZE_EXPAND_FILL);
-		reason->set_autowrap(true);
+		reason->set_autowrap_mode(Label::AUTOWRAP_WORD_SMART);
 		reason->set_max_lines_visible(3);
 		reason->set_mouse_filter(Control::MOUSE_FILTER_PASS);
 
@@ -1643,9 +1643,11 @@ ScriptEditorDebugger::ScriptEditorDebugger(EditorNode *p_editor) {
 		error_tree->set_columns(2);
 
 		error_tree->set_column_expand(0, false);
-		error_tree->set_column_min_width(0, 140);
+		error_tree->set_column_custom_minimum_width(0, 140);
+		error_tree->set_column_clip_content(0, true);
 
 		error_tree->set_column_expand(1, true);
+		error_tree->set_column_clip_content(1, true);
 
 		error_tree->set_select_mode(Tree::SELECT_ROW);
 		error_tree->set_hide_root(true);
@@ -1698,6 +1700,8 @@ ScriptEditorDebugger::ScriptEditorDebugger(EditorNode *p_editor) {
 		VBoxContainer *vmem_vb = memnew(VBoxContainer);
 		HBoxContainer *vmem_hb = memnew(HBoxContainer);
 		Label *vmlb = memnew(Label(TTR("List of Video Memory Usage by Resource:") + " "));
+		vmlb->set_theme_type_variation("HeaderSmall");
+
 		vmlb->set_h_size_flags(SIZE_EXPAND_FILL);
 		vmem_hb->add_child(vmlb);
 		vmem_hb->add_child(memnew(Label(TTR("Total:") + " ")));
@@ -1731,13 +1735,13 @@ ScriptEditorDebugger::ScriptEditorDebugger(EditorNode *p_editor) {
 		vmem_tree->set_column_expand(0, true);
 		vmem_tree->set_column_expand(1, false);
 		vmem_tree->set_column_title(1, TTR("Type"));
-		vmem_tree->set_column_min_width(1, 100 * EDSCALE);
+		vmem_tree->set_column_custom_minimum_width(1, 100 * EDSCALE);
 		vmem_tree->set_column_expand(2, false);
 		vmem_tree->set_column_title(2, TTR("Format"));
-		vmem_tree->set_column_min_width(2, 150 * EDSCALE);
+		vmem_tree->set_column_custom_minimum_width(2, 150 * EDSCALE);
 		vmem_tree->set_column_expand(3, false);
 		vmem_tree->set_column_title(3, TTR("Usage"));
-		vmem_tree->set_column_min_width(3, 80 * EDSCALE);
+		vmem_tree->set_column_custom_minimum_width(3, 80 * EDSCALE);
 		vmem_tree->set_hide_root(true);
 
 		tabs->add_child(vmem_vb);

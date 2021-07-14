@@ -30,8 +30,7 @@
 
 #include "physics_server_2d_sw.h"
 
-#include "broad_phase_2d_basic.h"
-#include "broad_phase_2d_hash_grid.h"
+#include "broad_phase_2d_bvh.h"
 #include "collision_solver_2d_sw.h"
 #include "core/config/project_settings.h"
 #include "core/debugger/engine_debugger.h"
@@ -367,7 +366,7 @@ void PhysicsServer2DSW::area_set_shape_disabled(RID p_area, int p_shape, bool p_
 	ERR_FAIL_INDEX(p_shape, area->get_shape_count());
 	FLUSH_QUERY_CHECK(area);
 
-	area->set_shape_as_disabled(p_shape, p_disabled);
+	area->set_shape_disabled(p_shape, p_disabled);
 }
 
 int PhysicsServer2DSW::area_get_shape_count(RID p_area) const {
@@ -664,7 +663,7 @@ void PhysicsServer2DSW::body_set_shape_disabled(RID p_body, int p_shape_idx, boo
 	ERR_FAIL_INDEX(p_shape_idx, body->get_shape_count());
 	FLUSH_QUERY_CHECK(body);
 
-	body->set_shape_as_disabled(p_shape_idx, p_disabled);
+	body->set_shape_disabled(p_shape_idx, p_disabled);
 }
 
 void PhysicsServer2DSW::body_set_shape_as_one_way_collision(RID p_body, int p_shape_idx, bool p_enable, real_t p_margin) {
@@ -927,10 +926,10 @@ int PhysicsServer2DSW::body_get_max_contacts_reported(RID p_body) const {
 	return body->get_max_contacts_reported();
 }
 
-void PhysicsServer2DSW::body_set_force_integration_callback(RID p_body, Object *p_receiver, const StringName &p_method, const Variant &p_udata) {
+void PhysicsServer2DSW::body_set_force_integration_callback(RID p_body, const Callable &p_callable, const Variant &p_udata) {
 	Body2DSW *body = body_owner.getornull(p_body);
 	ERR_FAIL_COND(!body);
-	body->set_force_integration_callback(p_receiver ? p_receiver->get_instance_id() : ObjectID(), p_method, p_udata);
+	body->set_force_integration_callback(p_callable, p_udata);
 }
 
 bool PhysicsServer2DSW::body_collide_shape(RID p_body, int p_body_shape, RID p_shape, const Transform2D &p_shape_xform, const Vector2 &p_motion, Vector2 *r_results, int p_result_max, int &r_result_count) {
@@ -1238,6 +1237,10 @@ void PhysicsServer2DSW::set_active(bool p_active) {
 	active = p_active;
 };
 
+void PhysicsServer2DSW::set_collision_iterations(int p_iterations) {
+	iterations = p_iterations;
+};
+
 void PhysicsServer2DSW::init() {
 	doing_sync = false;
 	last_step = 0.001;
@@ -1356,8 +1359,7 @@ PhysicsServer2DSW *PhysicsServer2DSW::singletonsw = nullptr;
 
 PhysicsServer2DSW::PhysicsServer2DSW(bool p_using_threads) {
 	singletonsw = this;
-	BroadPhase2DSW::create_func = BroadPhase2DHashGrid::_create;
-	//BroadPhase2DSW::create_func=BroadPhase2DBasic::_create;
+	BroadPhase2DSW::create_func = BroadPhase2DBVH::_create;
 
 	active = true;
 	island_count = 0;

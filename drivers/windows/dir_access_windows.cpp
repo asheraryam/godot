@@ -198,7 +198,7 @@ String DirAccessWindows::get_current_dir(bool p_include_drive) {
 		if (_get_root_string() == "") {
 			int p = current_dir.find(":");
 			if (p != -1) {
-				return current_dir.right(p + 1);
+				return current_dir.substr(p + 1);
 			}
 		}
 		return current_dir;
@@ -208,7 +208,7 @@ String DirAccessWindows::get_current_dir(bool p_include_drive) {
 bool DirAccessWindows::file_exists(String p_file) {
 	GLOBAL_LOCK_FUNCTION
 
-	if (!p_file.is_abs_path()) {
+	if (!p_file.is_absolute_path()) {
 		p_file = get_current_dir().plus_file(p_file);
 	}
 
@@ -325,14 +325,15 @@ FileType DirAccessWindows::get_file_type(const String& p_file) const {
 }
 
 */
-size_t DirAccessWindows::get_space_left() {
+
+uint64_t DirAccessWindows::get_space_left() {
 	uint64_t bytes = 0;
 	if (!GetDiskFreeSpaceEx(nullptr, (PULARGE_INTEGER)&bytes, nullptr, nullptr)) {
 		return 0;
 	}
 
 	//this is either 0 or a value in bytes.
-	return (size_t)bytes;
+	return bytes;
 }
 
 String DirAccessWindows::get_filesystem_type() const {

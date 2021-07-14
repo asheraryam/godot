@@ -105,7 +105,7 @@ void FileDialog::_unhandled_input(const Ref<InputEvent> &p_event) {
 
 			switch (k->get_keycode()) {
 				case KEY_H: {
-					if (k->get_command()) {
+					if (k->is_command_pressed()) {
 						set_show_hidden_files(!show_hidden_files);
 					} else {
 						handled = false;
@@ -116,7 +116,7 @@ void FileDialog::_unhandled_input(const Ref<InputEvent> &p_event) {
 					invalidate();
 				} break;
 				case KEY_BACKSPACE: {
-					_dir_entered("..");
+					_dir_submitted("..");
 				} break;
 				default: {
 					handled = false;
@@ -156,7 +156,7 @@ void FileDialog::update_dir() {
 	deselect_all();
 }
 
-void FileDialog::_dir_entered(String p_dir) {
+void FileDialog::_dir_submitted(String p_dir) {
 	dir_access->change_dir(p_dir);
 	file->set_text("");
 	invalidate();
@@ -164,7 +164,7 @@ void FileDialog::_dir_entered(String p_dir) {
 	_push_history();
 }
 
-void FileDialog::_file_entered(const String &p_file) {
+void FileDialog::_file_submitted(const String &p_file) {
 	_action_pressed();
 }
 
@@ -589,8 +589,8 @@ void FileDialog::update_file_list() {
 		files.pop_front();
 	}
 
-	if (tree->get_root() && tree->get_root()->get_children() && tree->get_selected() == nullptr) {
-		tree->get_root()->get_children()->select(0);
+	if (tree->get_root() && tree->get_root()->get_first_child() && tree->get_selected() == nullptr) {
+		tree->get_root()->get_first_child()->select(0);
 	}
 }
 
@@ -1020,8 +1020,8 @@ FileDialog::FileDialog() {
 	tree->connect("cell_selected", callable_mp(this, &FileDialog::_tree_selected), varray(), CONNECT_DEFERRED);
 	tree->connect("item_activated", callable_mp(this, &FileDialog::_tree_item_activated), varray());
 	tree->connect("nothing_selected", callable_mp(this, &FileDialog::deselect_all));
-	dir->connect("text_entered", callable_mp(this, &FileDialog::_dir_entered));
-	file->connect("text_entered", callable_mp(this, &FileDialog::_file_entered));
+	dir->connect("text_submitted", callable_mp(this, &FileDialog::_dir_submitted));
+	file->connect("text_submitted", callable_mp(this, &FileDialog::_file_submitted));
 	filter->connect("item_selected", callable_mp(this, &FileDialog::_filter_selected));
 
 	confirm_save = memnew(ConfirmationDialog);

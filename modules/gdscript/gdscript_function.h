@@ -31,7 +31,7 @@
 #ifndef GDSCRIPT_FUNCTION_H
 #define GDSCRIPT_FUNCTION_H
 
-#include "core/object/reference.h"
+#include "core/object/ref_counted.h"
 #include "core/object/script_language.h"
 #include "core/os/thread.h"
 #include "core/string/string_name.h"
@@ -263,6 +263,7 @@ public:
 		OPCODE_CALL_SELF_BASE,
 		OPCODE_CALL_METHOD_BIND,
 		OPCODE_CALL_METHOD_BIND_RET,
+		OPCODE_CALL_BUILTIN_STATIC,
 		// ptrcall have one instruction per return type.
 		OPCODE_CALL_PTRCALL_NO_RETURN,
 		OPCODE_CALL_PTRCALL_BOOL,
@@ -277,10 +278,10 @@ public:
 		OPCODE_CALL_PTRCALL_VECTOR3I,
 		OPCODE_CALL_PTRCALL_TRANSFORM2D,
 		OPCODE_CALL_PTRCALL_PLANE,
-		OPCODE_CALL_PTRCALL_QUAT,
+		OPCODE_CALL_PTRCALL_QUATERNION,
 		OPCODE_CALL_PTRCALL_AABB,
 		OPCODE_CALL_PTRCALL_BASIS,
-		OPCODE_CALL_PTRCALL_TRANSFORM,
+		OPCODE_CALL_PTRCALL_TRANSFORM3D,
 		OPCODE_CALL_PTRCALL_COLOR,
 		OPCODE_CALL_PTRCALL_STRING_NAME,
 		OPCODE_CALL_PTRCALL_NODE_PATH,
@@ -301,6 +302,7 @@ public:
 		OPCODE_CALL_PTRCALL_PACKED_COLOR_ARRAY,
 		OPCODE_AWAIT,
 		OPCODE_AWAIT_RESUME,
+		OPCODE_CREATE_LAMBDA,
 		OPCODE_JUMP,
 		OPCODE_JUMP_IF,
 		OPCODE_JUMP_IF_NOT,
@@ -363,7 +365,7 @@ public:
 		OPCODE_TYPE_ADJUST_VECTOR3I,
 		OPCODE_TYPE_ADJUST_TRANSFORM2D,
 		OPCODE_TYPE_ADJUST_PLANE,
-		OPCODE_TYPE_ADJUST_QUAT,
+		OPCODE_TYPE_ADJUST_QUATERNION,
 		OPCODE_TYPE_ADJUST_AABB,
 		OPCODE_TYPE_ADJUST_BASIS,
 		OPCODE_TYPE_ADJUST_TRANSFORM,
@@ -459,6 +461,8 @@ private:
 	const GDScriptUtilityFunctions::FunctionPtr *_gds_utilities_ptr = nullptr;
 	int _methods_count = 0;
 	MethodBind **_methods_ptr = nullptr;
+	int _lambdas_count = 0;
+	GDScriptFunction **_lambdas_ptr = nullptr;
 	const int *_code_ptr = nullptr;
 	int _code_size = 0;
 	int _argument_count = 0;
@@ -488,9 +492,12 @@ private:
 	Vector<Variant::ValidatedUtilityFunction> utilities;
 	Vector<GDScriptUtilityFunctions::FunctionPtr> gds_utilities;
 	Vector<MethodBind *> methods;
+	Vector<GDScriptFunction *> lambdas;
 	Vector<int> code;
 	Vector<GDScriptDataType> argument_types;
 	GDScriptDataType return_type;
+
+	Map<int, Variant::Type> temporary_slots;
 
 #ifdef TOOLS_ENABLED
 	Vector<StringName> arg_names;
@@ -590,8 +597,8 @@ public:
 	~GDScriptFunction();
 };
 
-class GDScriptFunctionState : public Reference {
-	GDCLASS(GDScriptFunctionState, Reference);
+class GDScriptFunctionState : public RefCounted {
+	GDCLASS(GDScriptFunctionState, RefCounted);
 	friend class GDScriptFunction;
 	GDScriptFunction *function = nullptr;
 	GDScriptFunction::CallState state;

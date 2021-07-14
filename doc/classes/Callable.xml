@@ -133,6 +133,13 @@
 				Returns [code]true[/code] if this [Callable] is a standard callable, referencing an object and a method using a [StringName].
 			</description>
 		</method>
+		<method name="is_valid" qualifiers="const">
+			<return type="bool">
+			</return>
+			<description>
+				Returns [code]true[/code] if the object exists and has a valid function assigned, or is a custom callable.
+			</description>
+		</method>
 		<method name="operator !=" qualifiers="operator">
 			<return type="bool">
 			</return>
@@ -149,6 +156,22 @@
 			</argument>
 			<description>
 				Returns [code]true[/code] if both [Callable]s invoke the same custom target.
+			</description>
+		</method>
+		<method name="rpc" qualifiers="vararg const">
+			<return type="void">
+			</return>
+			<description>
+				Perform an RPC (Remote Procedure Call). This is used for multiplayer and is normally not available unless the function being called has been marked as [i]RPC[/i]. Calling it on unsupported functions will result in an error.
+			</description>
+		</method>
+		<method name="rpc_id" qualifiers="vararg const">
+			<return type="void">
+			</return>
+			<argument index="0" name="peer_id" type="int">
+			</argument>
+			<description>
+				Perform an RPC (Remote Procedure Call) on a specific peer ID (see multiplayer documentation for reference). This is used for multiplayer and is normally not available unless the function being called has been marked as [i]RPC[/i]. Calling it on unsupported functions will result in an error.
 			</description>
 		</method>
 		<method name="unbind" qualifiers="const">

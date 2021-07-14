@@ -101,7 +101,7 @@ String OS_OSX::get_unique_id() const {
 
 	if (serial_number.is_empty()) {
 		io_service_t platformExpert = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
-		CFStringRef serialNumberAsCFString = NULL;
+		CFStringRef serialNumberAsCFString = nullptr;
 		if (platformExpert) {
 			serialNumberAsCFString = (CFStringRef)IORegistryEntryCreateCFProperty(platformExpert, CFSTR(kIOPlatformSerialNumberKey), kCFAllocatorDefault, 0);
 			IOObjectRelease(platformExpert);
@@ -158,7 +158,7 @@ void OS_OSX::delete_main_loop() {
 	if (!main_loop)
 		return;
 	memdelete(main_loop);
-	main_loop = NULL;
+	main_loop = nullptr;
 }
 
 String OS_OSX::get_name() const {
@@ -188,31 +188,45 @@ MainLoop *OS_OSX::get_main_loop() const {
 }
 
 String OS_OSX::get_config_path() const {
+	// The XDG Base Directory specification technically only applies on Linux/*BSD, but it doesn't hurt to support it on macOS as well.
 	if (has_environment("XDG_CONFIG_HOME")) {
-		return get_environment("XDG_CONFIG_HOME");
-	} else if (has_environment("HOME")) {
-		return get_environment("HOME").plus_file("Library/Application Support");
-	} else {
-		return ".";
+		if (get_environment("XDG_CONFIG_HOME").is_absolute_path()) {
+			return get_environment("XDG_CONFIG_HOME");
+		} else {
+			WARN_PRINT_ONCE("`XDG_CONFIG_HOME` is a relative path. Ignoring its value and falling back to `$HOME/Library/Application Support` or `.` per the XDG Base Directory specification.");
+		}
 	}
+	if (has_environment("HOME")) {
+		return get_environment("HOME").plus_file("Library/Application Support");
+	}
+	return ".";
 }
 
 String OS_OSX::get_data_path() const {
+	// The XDG Base Directory specification technically only applies on Linux/*BSD, but it doesn't hurt to support it on macOS as well.
 	if (has_environment("XDG_DATA_HOME")) {
-		return get_environment("XDG_DATA_HOME");
-	} else {
-		return get_config_path();
+		if (get_environment("XDG_DATA_HOME").is_absolute_path()) {
+			return get_environment("XDG_DATA_HOME");
+		} else {
+			WARN_PRINT_ONCE("`XDG_DATA_HOME` is a relative path. Ignoring its value and falling back to `get_config_path()` per the XDG Base Directory specification.");
+		}
 	}
+	return get_config_path();
 }
 
 String OS_OSX::get_cache_path() const {
+	// The XDG Base Directory specification technically only applies on Linux/*BSD, but it doesn't hurt to support it on macOS as well.
 	if (has_environment("XDG_CACHE_HOME")) {
-		return get_environment("XDG_CACHE_HOME");
-	} else if (has_environment("HOME")) {
-		return get_environment("HOME").plus_file("Library/Caches");
-	} else {
-		return get_config_path();
+		if (get_environment("XDG_CACHE_HOME").is_absolute_path()) {
+			return get_environment("XDG_CACHE_HOME");
+		} else {
+			WARN_PRINT_ONCE("`XDG_CACHE_HOME` is a relative path. Ignoring its value and falling back to `$HOME/Libary/Caches` or `get_config_path()` per the XDG Base Directory specification.");
+		}
 	}
+	if (has_environment("HOME")) {
+		return get_environment("HOME").plus_file("Library/Caches");
+	}
+	return get_config_path();
 }
 
 String OS_OSX::get_bundle_resource_dir() const {
@@ -346,7 +360,7 @@ Error OS_OSX::move_to_trash(const String &p_path) {
 }
 
 OS_OSX::OS_OSX() {
-	main_loop = NULL;
+	main_loop = nullptr;
 	force_quit = false;
 
 	Vector<Logger *> loggers;

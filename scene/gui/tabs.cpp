@@ -127,7 +127,7 @@ void Tabs::_gui_input(const Ref<InputEvent> &p_event) {
 	Ref<InputEventMouseButton> mb = p_event;
 
 	if (mb.is_valid()) {
-		if (mb->is_pressed() && mb->get_button_index() == MOUSE_BUTTON_WHEEL_UP && !mb->get_command()) {
+		if (mb->is_pressed() && mb->get_button_index() == MOUSE_BUTTON_WHEEL_UP && !mb->is_command_pressed()) {
 			if (scrolling_enabled && buttons_visible) {
 				if (offset > 0) {
 					offset--;
@@ -136,7 +136,7 @@ void Tabs::_gui_input(const Ref<InputEvent> &p_event) {
 			}
 		}
 
-		if (mb->is_pressed() && mb->get_button_index() == MOUSE_BUTTON_WHEEL_DOWN && !mb->get_command()) {
+		if (mb->is_pressed() && mb->get_button_index() == MOUSE_BUTTON_WHEEL_DOWN && !mb->is_command_pressed()) {
 			if (scrolling_enabled && buttons_visible) {
 				if (missing_right) {
 					offset++;
@@ -256,6 +256,7 @@ void Tabs::_notification(int p_what) {
 			_update_cache();
 			update();
 		} break;
+		case NOTIFICATION_THEME_CHANGED:
 		case NOTIFICATION_TRANSLATION_CHANGED: {
 			for (int i = 0; i < tabs.size(); ++i) {
 				_shape(i);
@@ -742,7 +743,7 @@ void Tabs::add_tab(const String &p_str, const Ref<Texture2D> &p_icon) {
 	Tab t;
 	t.text = p_str;
 	t.xl_text = tr(p_str);
-	t.text_buf.instance();
+	t.text_buf.instantiate();
 	t.text_buf->set_direction(is_layout_rtl() ? TextServer::DIRECTION_RTL : TextServer::DIRECTION_LTR);
 	t.text_buf->add_string(t.xl_text, get_theme_font("font"), get_theme_font_size("font_size"), Dictionary(), TranslationServer::get_singleton()->get_tool_locale());
 	t.icon = p_icon;

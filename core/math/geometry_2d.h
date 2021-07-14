@@ -362,6 +362,19 @@ public:
 		return (intersections & 1);
 	}
 
+	static bool is_segment_intersecting_polygon(const Vector2 &p_from, const Vector2 &p_to, const Vector<Vector2> &p_polygon) {
+		int c = p_polygon.size();
+		const Vector2 *p = p_polygon.ptr();
+		for (int i = 0; i < c; i++) {
+			const Vector2 &v1 = p[i];
+			const Vector2 &v2 = p[(i + 1) % c];
+			if (segment_intersects_segment(p_from, p_to, v1, v2, nullptr)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	static real_t vec2_cross(const Point2 &O, const Point2 &A, const Point2 &B) {
 		return (real_t)(A.x - O.x) * (B.y - O.y) - (real_t)(A.y - O.y) * (B.x - O.x);
 	}
@@ -395,6 +408,45 @@ public:
 		H.resize(k);
 		return H;
 	}
+
+	static Vector<Point2i> bresenham_line(const Point2i &p_start, const Point2i &p_end) {
+		Vector<Point2i> points;
+
+		Vector2i delta = (p_end - p_start).abs() * 2;
+		Vector2i step = (p_end - p_start).sign();
+		Vector2i current = p_start;
+
+		if (delta.x > delta.y) {
+			int err = delta.x / 2;
+
+			for (; current.x != p_end.x; current.x += step.x) {
+				points.push_back(current);
+
+				err -= delta.y;
+				if (err < 0) {
+					current.y += step.y;
+					err += delta.x;
+				}
+			}
+		} else {
+			int err = delta.y / 2;
+
+			for (; current.y != p_end.y; current.y += step.y) {
+				points.push_back(current);
+
+				err -= delta.x;
+				if (err < 0) {
+					current.x += step.x;
+					err += delta.y;
+				}
+			}
+		}
+
+		points.push_back(current);
+
+		return points;
+	}
+
 	static Vector<Vector<Vector2>> decompose_polygon_in_convex(Vector<Point2> polygon);
 
 	static void make_atlas(const Vector<Size2i> &p_rects, Vector<Point2i> &r_result, Size2i &r_size);

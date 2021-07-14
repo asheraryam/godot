@@ -193,7 +193,6 @@ ProceduralSkyMaterial::ProceduralSkyMaterial() {
 	code += "uniform float ground_energy = 1.0;\n\n";
 	code += "uniform float sun_angle_max = 1.74;\n";
 	code += "uniform float sun_curve : hint_range(0, 1) = 0.05;\n\n";
-	code += "const float PI = 3.1415926535897932384626433833;\n\n";
 	code += "void sky() {\n";
 	code += "\tfloat v_angle = acos(clamp(EYEDIR.y, -1.0, 1.0));\n";
 	code += "\tfloat c = (1.0 - v_angle / (PI * 0.5));\n";
@@ -271,7 +270,8 @@ ProceduralSkyMaterial::~ProceduralSkyMaterial() {
 
 void PanoramaSkyMaterial::set_panorama(const Ref<Texture2D> &p_panorama) {
 	panorama = p_panorama;
-	RS::get_singleton()->material_set_param(_get_material(), "source_panorama", panorama);
+	RID tex_rid = p_panorama.is_valid() ? p_panorama->get_rid() : RID();
+	RS::get_singleton()->material_set_param(_get_material(), "source_panorama", tex_rid);
 }
 
 Ref<Texture2D> PanoramaSkyMaterial::get_panorama() const {
@@ -412,7 +412,8 @@ float PhysicalSkyMaterial::get_dither_strength() const {
 
 void PhysicalSkyMaterial::set_night_sky(const Ref<Texture2D> &p_night_sky) {
 	night_sky = p_night_sky;
-	RS::get_singleton()->material_set_param(_get_material(), "night_sky", night_sky);
+	RID tex_rid = p_night_sky.is_valid() ? p_night_sky->get_rid() : RID();
+	RS::get_singleton()->material_set_param(_get_material(), "night_sky", tex_rid);
 }
 
 Ref<Texture2D> PhysicalSkyMaterial::get_night_sky() const {
@@ -499,7 +500,6 @@ PhysicalSkyMaterial::PhysicalSkyMaterial() {
 
 	code += "uniform sampler2D night_sky : hint_black;";
 
-	code += "const float PI = 3.141592653589793238462643383279502884197169;\n";
 	code += "const vec3 UP = vec3( 0.0, 1.0, 0.0 );\n\n";
 
 	code += "// Sun constants\n";

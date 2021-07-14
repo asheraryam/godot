@@ -40,9 +40,7 @@ Error HTTPRequest::_request() {
 }
 
 Error HTTPRequest::_parse_url(const String &p_url) {
-	url = p_url;
 	use_ssl = false;
-
 	request_string = "";
 	port = 80;
 	request_sent = false;
@@ -52,35 +50,20 @@ Error HTTPRequest::_parse_url(const String &p_url) {
 	downloaded.set(0);
 	redirections = 0;
 
-	String url_lower = url.to_lower();
-	if (url_lower.begins_with("http://")) {
-		url = url.substr(7, url.length() - 7);
-	} else if (url_lower.begins_with("https://")) {
-		url = url.substr(8, url.length() - 8);
+	String scheme;
+	Error err = p_url.parse_url(scheme, url, port, request_string);
+	ERR_FAIL_COND_V_MSG(err != OK, err, "Error parsing URL: " + p_url + ".");
+	if (scheme == "https://") {
 		use_ssl = true;
-		port = 443;
-	} else {
-		ERR_FAIL_V_MSG(ERR_INVALID_PARAMETER, "Malformed URL: " + url + ".");
+	} else if (scheme != "http://") {
+		ERR_FAIL_V_MSG(ERR_INVALID_PARAMETER, "Invalid URL scheme: " + scheme + ".");
 	}
-
-	ERR_FAIL_COND_V_MSG(url.length() < 1, ERR_INVALID_PARAMETER, "URL too short: " + url + ".");
-
-	int slash_pos = url.find("/");
-
-	if (slash_pos != -1) {
-		request_string = url.substr(slash_pos, url.length());
-		url = url.substr(0, slash_pos);
-	} else {
+	if (port == 0) {
+		port = use_ssl ? 443 : 80;
+	}
+	if (request_string.is_empty()) {
 		request_string = "/";
 	}
-
-	int colon_pos = url.find(":");
-	if (colon_pos != -1) {
-		port = url.substr(colon_pos + 1, url.length()).to_int();
-		url = url.substr(0, colon_pos);
-		ERR_FAIL_COND_V(port < 1 || port > 65535, ERR_INVALID_PARAMETER);
-	}
-
 	return OK;
 }
 
@@ -123,7 +106,7 @@ Error HTTPRequest::request(const String &p_url, const Vector<String> &p_custom_h
 	size_t len = charstr.length();
 	raw_data.resize(len);
 	uint8_t *w = raw_data.ptrw();
-	copymem(w, charstr.ptr(), len);
+	memcpy(w, charstr.ptr(), len);
 
 	return request_raw(p_url, p_custom_headers, p_ssl_validate_domain, p_method, raw_data);
 }
@@ -339,7 +322,8 @@ bool HTTPRequest::_update_connection() {
 			} else {
 				// Did not request yet, do request
 
-				Error err = client->request_raw(method, request_string, headers, request_data);
+				int size = request_data.size();
+				Error err = client->request(method, request_string, headers, size > 0 ? request_data.ptr() : nullptr, size);
 				if (err != OK) {
 					call_deferred("_request_done", RESULT_CONNECTION_ERROR, 0, PackedStringArray(), PackedByteArray());
 					return true;
@@ -392,17 +376,19 @@ bool HTTPRequest::_update_connection() {
 			}
 
 			PackedByteArray chunk = client->read_response_body_chunk();
-			downloaded.add(chunk.size());
 
-			if (file) {
-				const uint8_t *r = chunk.ptr();
-				file->store_buffer(r, chunk.size());
-				if (file->get_error() != OK) {
-					call_deferred("_request_done", RESULT_DOWNLOAD_FILE_WRITE_ERROR, response_code, response_headers, PackedByteArray());
-					return true;
+			if (chunk.size()) {
+				downloaded.add(chunk.size());
+				if (file) {
+					const uint8_t *r = chunk.ptr();
+					file->store_buffer(r, chunk.size());
+					if (file->get_error() != OK) {
+						call_deferred("_request_done", RESULT_DOWNLOAD_FILE_WRITE_ERROR, response_code, response_headers, PackedByteArray());
+						return true;
+					}
+				} else {
+					body.append_array(chunk);
 				}
-			} else {
-				body.append_array(chunk);
 			}
 
 			if (body_size_limit >= 0 && downloaded.get() > body_size_limit) {
@@ -642,7 +628,7 @@ void HTTPRequest::_bind_methods() {
 }
 
 HTTPRequest::HTTPRequest() {
-	client.instance();
+	client = Ref<HTTPClient>(HTTPClient::create());
 	timer = memnew(Timer);
 	timer->set_one_shot(true);
 	timer->connect("timeout", callable_mp(this, &HTTPRequest::_timeout));

@@ -40,6 +40,7 @@
 #include "editor/inspector_dock.h"
 #include "editor/property_editor.h"
 #include "editor/scene_tree_dock.h"
+#include "scene/gui/link_button.h"
 
 typedef void (*EditorNodeInitCallback)();
 typedef void (*EditorPluginInitializeCallback)();
@@ -134,7 +135,6 @@ private:
 		FILE_EXPORT_MESH_LIBRARY,
 		FILE_INSTALL_ANDROID_SOURCE,
 		FILE_EXPLORE_ANDROID_BUILD_TEMPLATES,
-		FILE_EXPORT_TILESET,
 		FILE_SAVE_OPTIMIZED,
 		FILE_OPEN_RECENT,
 		FILE_OPEN_OLD_SCENE,
@@ -164,6 +164,7 @@ private:
 		RUN_PLAY_CUSTOM_SCENE,
 		RUN_SETTINGS,
 		RUN_PROJECT_DATA_FOLDER,
+		RUN_RELOAD_CURRENT_PROJECT,
 		RUN_PROJECT_MANAGER,
 		RUN_VCS_SETTINGS,
 		RUN_VCS_SHUT_DOWN,
@@ -193,9 +194,11 @@ private:
 		HELP_DOCS,
 		HELP_QA,
 		HELP_REPORT_A_BUG,
+		HELP_SUGGEST_A_FEATURE,
 		HELP_SEND_DOCS_FEEDBACK,
 		HELP_COMMUNITY,
 		HELP_ABOUT,
+		HELP_SUPPORT_GODOT_DEVELOPMENT,
 
 		SET_VIDEO_DRIVER_SAVE_AND_RESTART,
 
@@ -298,6 +301,7 @@ private:
 	ConfirmationDialog *save_confirmation;
 	ConfirmationDialog *import_confirmation;
 	ConfirmationDialog *pick_main_scene;
+	Button *select_current_scene_button;
 	AcceptDialog *accept;
 	EditorAbout *about;
 	AcceptDialog *warning;
@@ -330,7 +334,7 @@ private:
 	EditorNativeShaderSourceVisualizer *native_shader_source_visualizer;
 
 	String defer_load_scene;
-	Node *_last_instanced_scene;
+	Node *_last_instantiated_scene;
 
 	EditorLog *log;
 	CenterContainer *tabs_center;
@@ -424,7 +428,7 @@ private:
 	HBoxContainer *bottom_panel_hb;
 	HBoxContainer *bottom_panel_hb_editors;
 	VBoxContainer *bottom_panel_vb;
-	Label *version_label;
+	LinkButton *version_btn;
 	Button *bottom_panel_raise;
 
 	Tree *disk_changed_list;
@@ -460,6 +464,7 @@ private:
 	void _update_file_menu_closed();
 
 	void _on_plugin_ready(Object *p_script, const String &p_activate_name);
+	void _remove_plugin_from_enabled(const String &p_name);
 
 	void _fs_changed();
 	void _resources_reimported(const Vector<String> &p_resources);
@@ -477,6 +482,7 @@ private:
 	void _close_messages();
 	void _show_messages();
 	void _vp_resized();
+	void _version_button_pressed();
 
 	int _save_external_resources();
 
@@ -487,7 +493,7 @@ private:
 	void _discard_changes(const String &p_str = String());
 
 	void _inherit_request(String p_file);
-	void _instance_request(const Vector<String> &p_files);
+	void _instantiate_request(const Vector<String> &p_files);
 
 	void _display_top_editors(bool p_display);
 	void _set_top_editors(Vector<EditorPlugin *> p_editor_plugins_over);
@@ -658,6 +664,8 @@ private:
 	bool _is_class_editor_disabled_by_feature_profile(const StringName &p_class);
 	Ref<ImageTexture> _load_custom_class_icon(const String &p_path) const;
 
+	void _pick_main_scene_custom_action(const String &p_custom_action_name);
+
 protected:
 	void _notification(int p_what);
 
@@ -766,7 +774,7 @@ public:
 	static VSplitContainer *get_top_split() { return singleton->top_split; }
 
 	void request_instance_scene(const String &p_path);
-	void request_instance_scenes(const Vector<String> &p_files);
+	void request_instantiate_scenes(const Vector<String> &p_files);
 	FileSystemDock *get_filesystem_dock();
 	ImportDock *get_import_dock();
 	SceneTreeDock *get_scene_tree_dock();
@@ -852,7 +860,7 @@ public:
 
 	void notify_settings_changed();
 
-	void dim_editor(bool p_dimming, bool p_force_dim = false);
+	void dim_editor(bool p_dimming);
 	bool is_editor_dimmed() const;
 
 	void edit_current() { _edit_current(); };

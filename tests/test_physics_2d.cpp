@@ -243,9 +243,7 @@ protected:
 		Size2 imgsize(5, 5); //vs->texture_get_width(body_shape_data[p_shape].image), vs->texture_get_height(body_shape_data[p_shape].image));
 		vs->canvas_item_add_texture_rect(sprite, Rect2(-imgsize / 2.0, imgsize), body_shape_data[p_shape].image);
 
-		ps->body_set_force_integration_callback(body, this, "_body_moved", sprite);
-		//RID q = ps->query_create(this,"_body_moved",sprite);
-		//ps->query_body_state(q,body);
+		ps->body_set_force_integration_callback(body, callable_mp(this, &TestPhysics2DMainLoop::_body_moved), sprite);
 
 		return body;
 	}
@@ -310,7 +308,6 @@ protected:
 	}
 
 	static void _bind_methods() {
-		ClassDB::bind_method(D_METHOD("_body_moved"), &TestPhysics2DMainLoop::_body_moved);
 		ClassDB::bind_method(D_METHOD("_ray_query_callback"), &TestPhysics2DMainLoop::_ray_query_callback);
 	}
 
@@ -323,7 +320,7 @@ public:
 		ps->space_set_active(space, true);
 		ps->set_active(true);
 		ps->area_set_param(space, PhysicsServer2D::AREA_PARAM_GRAVITY_VECTOR, Vector2(0, 1));
-		ps->area_set_param(space, PhysicsServer2D::AREA_PARAM_GRAVITY, 98);
+		ps->area_set_param(space, PhysicsServer2D::AREA_PARAM_GRAVITY, 980);
 
 		{
 			RID vp = vs->viewport_create();

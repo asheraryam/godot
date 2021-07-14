@@ -115,7 +115,7 @@ void AnimationNodeStateMachineTransition::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_priority", "priority"), &AnimationNodeStateMachineTransition::set_priority);
 	ClassDB::bind_method(D_METHOD("get_priority"), &AnimationNodeStateMachineTransition::get_priority);
 
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "switch_mode", PROPERTY_HINT_ENUM, "Immediate,Sync,AtEnd"), "set_switch_mode", "get_switch_mode");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "switch_mode", PROPERTY_HINT_ENUM, "Immediate,Sync,At End"), "set_switch_mode", "get_switch_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_advance"), "set_auto_advance", "has_auto_advance");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING_NAME, "advance_condition"), "set_advance_condition", "get_advance_condition");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "xfade_time", PROPERTY_HINT_RANGE, "0,240,0.01"), "set_xfade_time", "get_xfade_time");
@@ -496,7 +496,7 @@ void AnimationNodeStateMachinePlayback::_bind_methods() {
 }
 
 AnimationNodeStateMachinePlayback::AnimationNodeStateMachinePlayback() {
-	set_local_to_scene(true); //only one per instanced scene
+	set_local_to_scene(true); //only one per instantiated scene
 }
 
 ///////////////////////////////////////////////////////
@@ -520,7 +520,7 @@ void AnimationNodeStateMachine::get_parameter_list(List<PropertyInfo> *r_list) c
 Variant AnimationNodeStateMachine::get_parameter_default_value(const StringName &p_parameter) const {
 	if (p_parameter == playback) {
 		Ref<AnimationNodeStateMachinePlayback> p;
-		p.instance();
+		p.instantiate();
 		return p;
 	} else {
 		return false; //advance condition

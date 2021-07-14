@@ -38,6 +38,8 @@
 class Basis;
 
 struct Vector3 {
+	static const int AXIS_COUNT = 3;
+
 	enum Axis {
 		AXIS_X,
 		AXIS_Y,
@@ -65,8 +67,17 @@ struct Vector3 {
 	void set_axis(int p_axis, real_t p_value);
 	real_t get_axis(int p_axis) const;
 
-	int min_axis() const;
-	int max_axis() const;
+	_FORCE_INLINE_ void set_all(real_t p_value) {
+		x = y = z = p_value;
+	}
+
+	_FORCE_INLINE_ int min_axis() const {
+		return x < y ? (x < z ? 0 : 2) : (y < z ? 1 : 2);
+	}
+
+	_FORCE_INLINE_ int max_axis() const {
+		return x < y ? (y < z ? 2 : 1) : (x < z ? 2 : 0);
+	}
 
 	_FORCE_INLINE_ real_t length() const;
 	_FORCE_INLINE_ real_t length_squared() const;
@@ -75,6 +86,7 @@ struct Vector3 {
 	_FORCE_INLINE_ Vector3 normalized() const;
 	_FORCE_INLINE_ bool is_normalized() const;
 	_FORCE_INLINE_ Vector3 inverse() const;
+	Vector3 limit_length(const real_t p_len = 1.0) const;
 
 	_FORCE_INLINE_ void zero();
 
@@ -101,6 +113,7 @@ struct Vector3 {
 	_FORCE_INLINE_ Vector3 sign() const;
 	_FORCE_INLINE_ Vector3 ceil() const;
 	_FORCE_INLINE_ Vector3 round() const;
+	Vector3 clamp(const Vector3 &p_min, const Vector3 &p_max) const;
 
 	_FORCE_INLINE_ real_t distance_to(const Vector3 &p_to) const;
 	_FORCE_INLINE_ real_t distance_squared_to(const Vector3 &p_to) const;
@@ -412,7 +425,7 @@ Vector3 Vector3::normalized() const {
 
 bool Vector3::is_normalized() const {
 	// use length_squared() instead of length() to avoid sqrt(), makes it more stringent.
-	return Math::is_equal_approx(length_squared(), 1.0, UNIT_EPSILON);
+	return Math::is_equal_approx(length_squared(), 1, (real_t)UNIT_EPSILON);
 }
 
 Vector3 Vector3::inverse() const {

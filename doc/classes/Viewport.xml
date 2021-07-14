@@ -60,10 +60,11 @@
 		<method name="get_render_info">
 			<return type="int">
 			</return>
-			<argument index="0" name="info" type="int" enum="Viewport.RenderInfo">
+			<argument index="0" name="type" type="int" enum="Viewport.RenderInfoType">
+			</argument>
+			<argument index="1" name="info" type="int" enum="Viewport.RenderInfo">
 			</argument>
 			<description>
-				Returns information about the viewport from the rendering pipeline.
 			</description>
 		</method>
 		<method name="get_shadow_atlas_quadrant_subdiv" qualifiers="const">
@@ -81,10 +82,16 @@
 			<description>
 				Returns the viewport's texture.
 				[b]Note:[/b] Due to the way OpenGL works, the resulting [ViewportTexture] is flipped vertically. You can use [method Image.flip_y] on the result of [method Texture2D.get_image] to flip it back, for example:
-				[codeblock]
+				[codeblocks]
+				[gdscript]
 				var img = get_viewport().get_texture().get_image()
 				img.flip_y()
-				[/codeblock]
+				[/gdscript]
+				[csharp]
+				Image img = GetViewport().GetTexture().GetImage();
+				img.FlipY();
+				[/csharp]
+				[/codeblocks]
 			</description>
 		</method>
 		<method name="get_viewport_rid" qualifiers="const">
@@ -105,7 +112,7 @@
 			<return type="Variant">
 			</return>
 			<description>
-				Returns the drag data from the GUI, that was previously returned by [method Control.get_drag_data].
+				Returns the drag data from the GUI, that was previously returned by [method Control._get_drag_data].
 			</description>
 		</method>
 		<method name="gui_is_dragging" qualifiers="const">
@@ -173,13 +180,6 @@
 			<description>
 			</description>
 		</method>
-		<method name="update_worlds">
-			<return type="void">
-			</return>
-			<description>
-				Forces update of the 2D and 3D worlds.
-			</description>
-		</method>
 		<method name="warp_mouse">
 			<return type="void">
 			</return>
@@ -208,6 +208,9 @@
 		</member>
 		<member name="debug_draw" type="int" setter="set_debug_draw" getter="get_debug_draw" enum="Viewport.DebugDraw" default="0">
 			The overlay mode for test rendered geometry in debug purposes.
+		</member>
+		<member name="disable_3d" type="bool" setter="set_disable_3d" getter="is_3d_disabled" default="false">
+			Disable 3D rendering (but keep 2D rendering).
 		</member>
 		<member name="global_canvas_transform" type="Transform2D" setter="set_global_canvas_transform" getter="get_global_canvas_transform">
 			The global canvas transform of the viewport. The canvas transform is relative to this.
@@ -266,6 +269,11 @@
 			If [code]true[/code], the viewport should render its background as transparent.
 		</member>
 		<member name="use_debanding" type="bool" setter="set_use_debanding" getter="is_using_debanding" default="false">
+		</member>
+		<member name="use_occlusion_culling" type="bool" setter="set_use_occlusion_culling" getter="is_using_occlusion_culling" default="false">
+		</member>
+		<member name="use_xr" type="bool" setter="set_use_xr" getter="is_using_xr" default="false">
+			If [code]true[/code], the viewport will use the primary XR interface to render XR output. When applicable this can result in a stereoscopic image and the resulting render being output to a headset.
 		</member>
 		<member name="world_2d" type="World2D" setter="set_world_2d" getter="get_world_2d">
 			The custom [World2D] which can be used as 2D environment source.
@@ -343,23 +351,20 @@
 		<constant name="RENDER_INFO_OBJECTS_IN_FRAME" value="0" enum="RenderInfo">
 			Amount of objects in frame.
 		</constant>
-		<constant name="RENDER_INFO_VERTICES_IN_FRAME" value="1" enum="RenderInfo">
+		<constant name="RENDER_INFO_PRIMITIVES_IN_FRAME" value="1" enum="RenderInfo">
 			Amount of vertices in frame.
 		</constant>
-		<constant name="RENDER_INFO_MATERIAL_CHANGES_IN_FRAME" value="2" enum="RenderInfo">
-			Amount of material changes in frame.
-		</constant>
-		<constant name="RENDER_INFO_SHADER_CHANGES_IN_FRAME" value="3" enum="RenderInfo">
-			Amount of shader changes in frame.
-		</constant>
-		<constant name="RENDER_INFO_SURFACE_CHANGES_IN_FRAME" value="4" enum="RenderInfo">
-			Amount of surface changes in frame.
-		</constant>
-		<constant name="RENDER_INFO_DRAW_CALLS_IN_FRAME" value="5" enum="RenderInfo">
+		<constant name="RENDER_INFO_DRAW_CALLS_IN_FRAME" value="2" enum="RenderInfo">
 			Amount of draw calls in frame.
 		</constant>
-		<constant name="RENDER_INFO_MAX" value="6" enum="RenderInfo">
+		<constant name="RENDER_INFO_MAX" value="3" enum="RenderInfo">
 			Represents the size of the [enum RenderInfo] enum.
+		</constant>
+		<constant name="RENDER_INFO_TYPE_VISIBLE" value="0" enum="RenderInfoType">
+		</constant>
+		<constant name="RENDER_INFO_TYPE_SHADOW" value="1" enum="RenderInfoType">
+		</constant>
+		<constant name="RENDER_INFO_TYPE_MAX" value="2" enum="RenderInfoType">
 		</constant>
 		<constant name="DEBUG_DRAW_DISABLED" value="0" enum="DebugDraw">
 			Objects are displayed normally.
@@ -377,14 +382,14 @@
 		</constant>
 		<constant name="DEBUG_DRAW_NORMAL_BUFFER" value="5" enum="DebugDraw">
 		</constant>
-		<constant name="DEBUG_DRAW_GI_PROBE_ALBEDO" value="6" enum="DebugDraw">
-			Objects are displayed with only the albedo value from [GIProbe]s.
+		<constant name="DEBUG_DRAW_VOXEL_GI_ALBEDO" value="6" enum="DebugDraw">
+			Objects are displayed with only the albedo value from [VoxelGI]s.
 		</constant>
-		<constant name="DEBUG_DRAW_GI_PROBE_LIGHTING" value="7" enum="DebugDraw">
-			Objects are displayed with only the lighting value from [GIProbe]s.
+		<constant name="DEBUG_DRAW_VOXEL_GI_LIGHTING" value="7" enum="DebugDraw">
+			Objects are displayed with only the lighting value from [VoxelGI]s.
 		</constant>
-		<constant name="DEBUG_DRAW_GI_PROBE_EMISSION" value="8" enum="DebugDraw">
-			Objects are displayed with only the emission color from [GIProbe]s.
+		<constant name="DEBUG_DRAW_VOXEL_GI_EMISSION" value="8" enum="DebugDraw">
+			Objects are displayed with only the emission color from [VoxelGI]s.
 		</constant>
 		<constant name="DEBUG_DRAW_SHADOW_ATLAS" value="9" enum="DebugDraw">
 			Draws the shadow atlas that stores shadows from [OmniLight3D]s and [SpotLight3D]s in the upper left quadrant of the [Viewport].
@@ -418,6 +423,8 @@
 		<constant name="DEBUG_DRAW_CLUSTER_DECALS" value="21" enum="DebugDraw">
 		</constant>
 		<constant name="DEBUG_DRAW_CLUSTER_REFLECTION_PROBES" value="22" enum="DebugDraw">
+		</constant>
+		<constant name="DEBUG_DRAW_OCCLUDERS" value="23" enum="DebugDraw">
 		</constant>
 		<constant name="DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST" value="0" enum="DefaultCanvasItemTextureFilter">
 			The texture filter reads from the nearest pixel only. The simplest and fastest method of filtering, but the texture will look pixelized.

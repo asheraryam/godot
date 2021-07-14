@@ -81,7 +81,7 @@ public:
 
 	//! temp_variables
 	//!@{
-	real_t m_currentLimitError; //!  How much is violated this limit
+	real_t m_currentLimitError; //!< How much is violated this limit
 	int m_currentLimit; //!< 0=free, 1=at lo limit, 2=at hi limit
 	real_t m_accumulatedImpulse;
 	//!@}
@@ -113,14 +113,14 @@ public:
 		return (m_enableMotor || m_currentLimit != 0);
 	}
 
-	//! calculates  error
+	//! calculates error
 	/*!
 	calculates m_currentLimit and m_currentLimitError.
 	*/
 	int testLimitValue(real_t test_value);
 
 	//! apply the correction impulses for two bodies
-	real_t solveAngularLimits(real_t timeStep, Vector3 &axis, real_t jacDiagABInv, Body3DSW *body0, Body3DSW *body1);
+	real_t solveAngularLimits(real_t timeStep, Vector3 &axis, real_t jacDiagABInv, Body3DSW *body0, Body3DSW *body1, bool p_body0_dynamic, bool p_body1_dynamic);
 };
 
 class G6DOFTranslationalLimitMotor3DSW {
@@ -166,6 +166,7 @@ public:
 			real_t jacDiagABInv,
 			Body3DSW *body1, const Vector3 &pointInA,
 			Body3DSW *body2, const Vector3 &pointInB,
+			bool p_body1_dynamic, bool p_body2_dynamic,
 			int limit_index,
 			const Vector3 &axis_normal_on_a,
 			const Vector3 &anchorPos);
@@ -184,8 +185,8 @@ protected:
 
 	//! relative_frames
 	//!@{
-	Transform m_frameInA; //!< the constraint space w.r.t body A
-	Transform m_frameInB; //!< the constraint space w.r.t body B
+	Transform3D m_frameInA; //!< the constraint space w.r.t body A
+	Transform3D m_frameInB; //!< the constraint space w.r.t body B
 	//!@}
 
 	//! Jacobians
@@ -208,8 +209,8 @@ protected:
 	//! temporal variables
 	//!@{
 	real_t m_timeStep;
-	Transform m_calculatedTransformA;
-	Transform m_calculatedTransformB;
+	Transform3D m_calculatedTransformA;
+	Transform3D m_calculatedTransformB;
 	Vector3 m_calculatedAxisAngleDiff;
 	Vector3 m_calculatedAxis[3];
 
@@ -232,12 +233,12 @@ protected:
 	void calculateAngleInfo();
 
 public:
-	Generic6DOFJoint3DSW(Body3DSW *rbA, Body3DSW *rbB, const Transform &frameInA, const Transform &frameInB, bool useLinearReferenceFrameA);
+	Generic6DOFJoint3DSW(Body3DSW *rbA, Body3DSW *rbB, const Transform3D &frameInA, const Transform3D &frameInB, bool useLinearReferenceFrameA);
 
-	virtual PhysicsServer3D::JointType get_type() const { return PhysicsServer3D::JOINT_TYPE_6DOF; }
+	virtual PhysicsServer3D::JointType get_type() const override { return PhysicsServer3D::JOINT_TYPE_6DOF; }
 
-	virtual bool setup(real_t p_timestep);
-	virtual void solve(real_t p_timestep);
+	virtual bool setup(real_t p_step) override;
+	virtual void solve(real_t p_step) override;
 
 	//! Calcs global transform of the offsets
 	/*!
@@ -250,7 +251,7 @@ public:
 	/*!
     \sa Generic6DOFJointSW.getFrameOffsetA, Generic6DOFJointSW.getFrameOffsetB, Generic6DOFJointSW.calculateAngleInfo.
     */
-	const Transform &getCalculatedTransformA() const {
+	const Transform3D &getCalculatedTransformA() const {
 		return m_calculatedTransformA;
 	}
 
@@ -258,23 +259,23 @@ public:
 	/*!
     \sa Generic6DOFJointSW.getFrameOffsetA, Generic6DOFJointSW.getFrameOffsetB, Generic6DOFJointSW.calculateAngleInfo.
     */
-	const Transform &getCalculatedTransformB() const {
+	const Transform3D &getCalculatedTransformB() const {
 		return m_calculatedTransformB;
 	}
 
-	const Transform &getFrameOffsetA() const {
+	const Transform3D &getFrameOffsetA() const {
 		return m_frameInA;
 	}
 
-	const Transform &getFrameOffsetB() const {
+	const Transform3D &getFrameOffsetB() const {
 		return m_frameInB;
 	}
 
-	Transform &getFrameOffsetA() {
+	Transform3D &getFrameOffsetA() {
 		return m_frameInA;
 	}
 
-	Transform &getFrameOffsetB() {
+	Transform3D &getFrameOffsetB() {
 		return m_frameInB;
 	}
 
@@ -326,7 +327,7 @@ public:
 		return &m_angularLimits[index];
 	}
 
-	//! Retrieves the  limit informacion
+	//! Retrieves the limit informacion
 	G6DOFTranslationalLimitMotor3DSW *getTranslationalLimitMotor() {
 		return &m_linearLimits;
 	}

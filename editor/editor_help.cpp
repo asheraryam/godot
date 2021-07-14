@@ -475,7 +475,7 @@ void EditorHelp::_update_doc() {
 			String linktxt = (cd.tutorials[i].title.is_empty()) ? link : DTR(cd.tutorials[i].title);
 			const int seppos = linktxt.find("//");
 			if (seppos != -1) {
-				linktxt = link.right(seppos + 2);
+				linktxt = link.substr(seppos + 2);
 			}
 
 			class_desc->push_color(symbol_color);
@@ -1593,7 +1593,7 @@ void EditorHelp::_notification(int p_what) {
 			_update_doc();
 		} break;
 		case NOTIFICATION_THEME_CHANGED: {
-			if (is_visible_in_tree()) {
+			if (is_inside_tree()) {
 				_class_desc_resized();
 			}
 		} break;
@@ -1761,7 +1761,7 @@ FindBar::FindBar() {
 	search_text->set_custom_minimum_size(Size2(100 * EDSCALE, 0));
 	search_text->set_h_size_flags(SIZE_EXPAND_FILL);
 	search_text->connect("text_changed", callable_mp(this, &FindBar::_search_text_changed));
-	search_text->connect("text_entered", callable_mp(this, &FindBar::_search_text_entered));
+	search_text->connect("text_submitted", callable_mp(this, &FindBar::_search_text_submitted));
 
 	matches_label = memnew(Label);
 	add_child(matches_label);
@@ -1849,9 +1849,6 @@ bool FindBar::_search(bool p_search_previous) {
 	bool keep = prev_search == stext;
 
 	bool ret = rich_text_label->search(stext, keep, p_search_previous);
-	if (!ret) {
-		ret = rich_text_label->search(stext, false, p_search_previous);
-	}
 
 	prev_search = stext;
 
@@ -1878,7 +1875,7 @@ void FindBar::_update_results_count() {
 	int from_pos = 0;
 
 	while (true) {
-		int pos = full_text.find(searched, from_pos);
+		int pos = full_text.findn(searched, from_pos);
 		if (pos == -1) {
 			break;
 		}
@@ -1912,7 +1909,7 @@ void FindBar::_unhandled_input(const Ref<InputEvent> &p_event) {
 
 	Ref<InputEventKey> k = p_event;
 	if (k.is_valid()) {
-		if (k->is_pressed() && (rich_text_label->has_focus() || is_a_parent_of(get_focus_owner()))) {
+		if (k->is_pressed() && (rich_text_label->has_focus() || is_ancestor_of(get_focus_owner()))) {
 			bool accepted = true;
 
 			switch (k->get_keycode()) {
@@ -1935,7 +1932,7 @@ void FindBar::_search_text_changed(const String &p_text) {
 	search_next();
 }
 
-void FindBar::_search_text_entered(const String &p_text) {
+void FindBar::_search_text_submitted(const String &p_text) {
 	if (Input::get_singleton()->is_key_pressed(KEY_SHIFT)) {
 		search_prev();
 	} else {

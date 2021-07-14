@@ -766,7 +766,7 @@ struct MarkupContent {
 
 // Use namespace instead of enumeration to follow the LSP specifications
 // lsp::EnumName::EnumValue is OK but lsp::EnumValue is not
-// And here C++ compilers are unhappy with our enumeration name like Color, File, Reference etc.
+// And here C++ compilers are unhappy with our enumeration name like Color, File, RefCounted etc.
 /**
  * The kind of a completion entry.
  */
@@ -788,7 +788,7 @@ static const int Keyword = 14;
 static const int Snippet = 15;
 static const int Color = 16;
 static const int File = 17;
-static const int Reference = 18;
+static const int RefCounted = 18;
 static const int Folder = 19;
 static const int EnumMember = 20;
 static const int Constant = 21;
@@ -1528,6 +1528,114 @@ struct SignatureHelp {
 	}
 };
 
+/**
+ * A pattern to describe in which file operation requests or notifications
+ * the server is interested in.
+ */
+struct FileOperationPattern {
+	/**
+	 * The glob pattern to match.
+	 */
+	String glob = "**/*.gd";
+
+	/**
+	 * Whether to match `file`s or `folder`s with this pattern.
+	 *
+	 * Matches both if undefined.
+	 */
+	String matches = "file";
+
+	Dictionary to_json() const {
+		Dictionary dict;
+
+		dict["glob"] = glob;
+		dict["matches"] = matches;
+
+		return dict;
+	}
+};
+
+/**
+ * A filter to describe in which file operation requests or notifications
+ * the server is interested in.
+ */
+struct FileOperationFilter {
+	/**
+	 * The actual file operation pattern.
+	 */
+	FileOperationPattern pattern;
+
+	Dictionary to_json() const {
+		Dictionary dict;
+
+		dict["pattern"] = pattern.to_json();
+
+		return dict;
+	}
+};
+
+/**
+ * The options to register for file operations.
+ */
+struct FileOperationRegistrationOptions {
+	/**
+	 * The actual filters.
+	 */
+	Vector<FileOperationFilter> filters;
+
+	FileOperationRegistrationOptions() {
+		filters.push_back(FileOperationFilter());
+	}
+
+	Dictionary to_json() const {
+		Dictionary dict;
+
+		Array filts;
+		for (int i = 0; i < filters.size(); i++) {
+			filts.push_back(filters[i].to_json());
+		}
+		dict["filters"] = filts;
+
+		return dict;
+	}
+};
+
+/**
+ * The server is interested in file notifications/requests.
+ */
+struct FileOperations {
+	/**
+	 * The server is interested in receiving didDeleteFiles file notifications.
+	 */
+	FileOperationRegistrationOptions didDelete;
+
+	Dictionary to_json() const {
+		Dictionary dict;
+
+		dict["didDelete"] = didDelete.to_json();
+
+		return dict;
+	}
+};
+
+/**
+ * Workspace specific server capabilities
+ */
+struct Workspace {
+	/**
+	 * The server is interested in file notifications/requests.
+	 */
+	FileOperations fileOperations;
+
+	Dictionary to_json() const {
+		Dictionary dict;
+
+		dict["fileOperations"] = fileOperations.to_json();
+
+		return dict;
+	}
+};
+
 struct ServerCapabilities {
 	/**
 	 * Defines how text documents are synced. Is either a detailed structure defining each notification or
@@ -1588,6 +1696,11 @@ struct ServerCapabilities {
 	 * The server provides workspace symbol support.
 	 */
 	bool workspaceSymbolProvider = true;
+
+	/**
+	 * The server supports workspace folder.
+	 */
+	Workspace workspace;
 
 	/**
 	 * The server provides code actions. The `CodeActionOptions` return type is only
@@ -1676,6 +1789,7 @@ struct ServerCapabilities {
 		dict["documentHighlightProvider"] = documentHighlightProvider;
 		dict["documentSymbolProvider"] = documentSymbolProvider;
 		dict["workspaceSymbolProvider"] = workspaceSymbolProvider;
+		dict["workspace"] = workspace.to_json();
 		dict["codeActionProvider"] = codeActionProvider;
 		dict["documentFormattingProvider"] = documentFormattingProvider;
 		dict["documentRangeFormattingProvider"] = documentRangeFormattingProvider;

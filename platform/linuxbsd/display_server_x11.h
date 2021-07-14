@@ -55,6 +55,10 @@
 #include "platform/linuxbsd/vulkan_context_x11.h"
 #endif
 
+#if defined(DBUS_ENABLED)
+#include "freedesktop_screensaver.h"
+#endif
+
 #include <X11/Xcursor/Xcursor.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/XInput2.h>
@@ -103,6 +107,11 @@ class DisplayServerX11 : public DisplayServer {
 	RenderingDeviceVulkan *rendering_device_vulkan;
 #endif
 
+#if defined(DBUS_ENABLED)
+	FreeDesktopScreenSaver *screensaver;
+	bool keep_screen_on = false;
+#endif
+
 	struct WindowData {
 		Window x11_window;
 		::XIC xic;
@@ -143,7 +152,7 @@ class DisplayServerX11 : public DisplayServer {
 	Map<WindowID, WindowData> windows;
 
 	WindowID window_id_counter = MAIN_WINDOW_ID;
-	WindowID _create_window(WindowMode p_mode, uint32_t p_flags, const Rect2i &p_rect);
+	WindowID _create_window(WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Rect2i &p_rect);
 
 	String internal_clipboard;
 	Window xdnd_source_window;
@@ -162,7 +171,7 @@ class DisplayServerX11 : public DisplayServer {
 	Point2i last_click_pos;
 	uint64_t last_click_ms;
 	int last_click_button_index;
-	uint32_t last_button_state;
+	MouseButton last_button_state = MOUSE_BUTTON_NONE;
 	bool app_focused = false;
 	uint64_t time_since_no_focus = 0;
 
@@ -187,7 +196,7 @@ class DisplayServerX11 : public DisplayServer {
 
 	bool _refresh_device_info();
 
-	unsigned int _get_mouse_button_state(unsigned int p_x11_button, int p_x11_type);
+	MouseButton _get_mouse_button_state(MouseButton p_x11_button, int p_x11_type);
 	void _get_key_modifier_state(unsigned int p_x11_state, Ref<InputEventWithModifiers> state);
 	void _flush_mouse_motion();
 
@@ -279,7 +288,7 @@ public:
 	virtual void mouse_warp_to_position(const Point2i &p_to);
 	virtual Point2i mouse_get_position() const;
 	virtual Point2i mouse_get_absolute_position() const;
-	virtual int mouse_get_button_state() const;
+	virtual MouseButton mouse_get_button_state() const;
 
 	virtual void clipboard_set(const String &p_text);
 	virtual String clipboard_get() const;
@@ -291,9 +300,14 @@ public:
 	virtual int screen_get_dpi(int p_screen = SCREEN_OF_MAIN_WINDOW) const;
 	virtual bool screen_is_touchscreen(int p_screen = SCREEN_OF_MAIN_WINDOW) const;
 
+#if defined(DBUS_ENABLED)
+	virtual void screen_set_keep_on(bool p_enable);
+	virtual bool screen_is_kept_on() const;
+#endif
+
 	virtual Vector<DisplayServer::WindowID> get_window_list() const;
 
-	virtual WindowID create_sub_window(WindowMode p_mode, uint32_t p_flags, const Rect2i &p_rect = Rect2i());
+	virtual WindowID create_sub_window(WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Rect2i &p_rect = Rect2i());
 	virtual void show_window(WindowID p_id);
 	virtual void delete_sub_window(WindowID p_id);
 
@@ -348,6 +362,9 @@ public:
 	virtual void window_set_ime_active(const bool p_active, WindowID p_window = MAIN_WINDOW_ID);
 	virtual void window_set_ime_position(const Point2i &p_pos, WindowID p_window = MAIN_WINDOW_ID);
 
+	virtual void window_set_vsync_mode(DisplayServer::VSyncMode p_vsync_mode, WindowID p_window = MAIN_WINDOW_ID) override;
+	virtual DisplayServer::VSyncMode window_get_vsync_mode(WindowID p_vsync_mode) const override;
+
 	virtual void cursor_set_shape(CursorShape p_shape);
 	virtual CursorShape cursor_get_shape() const;
 	virtual void cursor_set_custom_image(const RES &p_cursor, CursorShape p_shape, const Vector2 &p_hotspot);
@@ -369,12 +386,12 @@ public:
 	virtual void set_native_icon(const String &p_filename);
 	virtual void set_icon(const Ref<Image> &p_icon);
 
-	static DisplayServer *create_func(const String &p_rendering_driver, WindowMode p_mode, uint32_t p_flags, const Vector2i &p_resolution, Error &r_error);
+	static DisplayServer *create_func(const String &p_rendering_driver, WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i &p_resolution, Error &r_error);
 	static Vector<String> get_rendering_drivers_func();
 
 	static void register_x11_driver();
 
-	DisplayServerX11(const String &p_rendering_driver, WindowMode p_mode, uint32_t p_flags, const Vector2i &p_resolution, Error &r_error);
+	DisplayServerX11(const String &p_rendering_driver, WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i &p_resolution, Error &r_error);
 	~DisplayServerX11();
 };
 

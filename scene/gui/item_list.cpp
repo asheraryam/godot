@@ -57,7 +57,7 @@ int ItemList::add_item(const String &p_item, const Ref<Texture2D> &p_texture, bo
 	item.icon_region = Rect2i();
 	item.icon_modulate = Color(1, 1, 1, 1);
 	item.text = p_item;
-	item.text_buf.instance();
+	item.text_buf.instantiate();
 	item.selectable = p_selectable;
 	item.selected = false;
 	item.disabled = false;
@@ -80,7 +80,7 @@ int ItemList::add_icon_item(const Ref<Texture2D> &p_item, bool p_selectable) {
 	item.icon_region = Rect2i();
 	item.icon_modulate = Color(1, 1, 1, 1);
 	//item.text=p_item;
-	item.text_buf.instance();
+	item.text_buf.instantiate();
 	item.selectable = p_selectable;
 	item.selected = false;
 	item.disabled = false;
@@ -406,6 +406,9 @@ void ItemList::remove_item(int p_idx) {
 	ERR_FAIL_INDEX(p_idx, items.size());
 
 	items.remove(p_idx);
+	if (current == p_idx) {
+		current = -1;
+	}
 	update();
 	shape_changed = true;
 	defer_select_single = -1;
@@ -578,11 +581,11 @@ void ItemList::_gui_input(const Ref<InputEvent> &p_event) {
 		if (closest != -1) {
 			int i = closest;
 
-			if (select_mode == SELECT_MULTI && items[i].selected && mb->get_command()) {
+			if (select_mode == SELECT_MULTI && items[i].selected && mb->is_command_pressed()) {
 				deselect(i);
 				emit_signal("multi_selected", i, false);
 
-			} else if (select_mode == SELECT_MULTI && mb->get_shift() && current >= 0 && current < items.size() && current != i) {
+			} else if (select_mode == SELECT_MULTI && mb->is_shift_pressed() && current >= 0 && current < items.size() && current != i) {
 				int from = current;
 				int to = i;
 				if (i < current) {
@@ -600,7 +603,7 @@ void ItemList::_gui_input(const Ref<InputEvent> &p_event) {
 					emit_signal("item_rmb_selected", i, get_local_mouse_position());
 				}
 			} else {
-				if (!mb->is_doubleclick() && !mb->get_command() && select_mode == SELECT_MULTI && items[i].selectable && !items[i].disabled && items[i].selected && mb->get_button_index() == MOUSE_BUTTON_LEFT) {
+				if (!mb->is_double_click() && !mb->is_command_pressed() && select_mode == SELECT_MULTI && items[i].selectable && !items[i].disabled && items[i].selected && mb->get_button_index() == MOUSE_BUTTON_LEFT) {
 					defer_select_single = i;
 					return;
 				}
@@ -610,7 +613,7 @@ void ItemList::_gui_input(const Ref<InputEvent> &p_event) {
 				} else {
 					bool selected = items[i].selected;
 
-					select(i, select_mode == SELECT_SINGLE || !mb->get_command());
+					select(i, select_mode == SELECT_SINGLE || !mb->is_command_pressed());
 
 					if (!selected || allow_reselect) {
 						if (select_mode == SELECT_SINGLE) {
@@ -622,7 +625,7 @@ void ItemList::_gui_input(const Ref<InputEvent> &p_event) {
 
 					if (mb->get_button_index() == MOUSE_BUTTON_RIGHT) {
 						emit_signal("item_rmb_selected", i, get_local_mouse_position());
-					} else if (/*select_mode==SELECT_SINGLE &&*/ mb->is_doubleclick()) {
+					} else if (/*select_mode==SELECT_SINGLE &&*/ mb->is_double_click()) {
 						emit_signal("item_activated", i);
 					}
 				}

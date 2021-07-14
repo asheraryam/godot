@@ -305,17 +305,17 @@ void EditorProfiler::_update_plot() {
 	}
 
 	Ref<Image> img;
-	img.instance();
+	img.instantiate();
 	img->create(w, h, false, Image::FORMAT_RGBA8, graph_image);
 
 	if (reset_texture) {
 		if (graph_texture.is_null()) {
-			graph_texture.instance();
+			graph_texture.instantiate();
 		}
 		graph_texture->create_from_image(img);
 	}
 
-	graph_texture->update(img, true);
+	graph_texture->update(img);
 
 	graph->set_texture(graph_texture);
 	graph->update();
@@ -508,23 +508,35 @@ Vector<Vector<String>> EditorProfiler::get_data_as_csv() const {
 		return res;
 	}
 
-	// signatures
-	Vector<String> signatures;
-	const Vector<EditorProfiler::Metric::Category> &categories = frame_metrics[0].categories;
-
-	for (int j = 0; j < categories.size(); j++) {
-		const EditorProfiler::Metric::Category &c = categories[j];
-		signatures.push_back(c.signature);
-
-		for (int k = 0; k < c.items.size(); k++) {
-			signatures.push_back(c.items[k].signature);
+	// Different metrics may contain different number of categories.
+	Set<StringName> possible_signatures;
+	for (int i = 0; i < frame_metrics.size(); i++) {
+		const Metric &m = frame_metrics[i];
+		if (!m.valid) {
+			continue;
 		}
+		for (Map<StringName, Metric::Category *>::Element *E = m.category_ptrs.front(); E; E = E->next()) {
+			possible_signatures.insert(E->key());
+		}
+		for (Map<StringName, Metric::Category::Item *>::Element *E = m.item_ptrs.front(); E; E = E->next()) {
+			possible_signatures.insert(E->key());
+		}
+	}
+
+	// Generate CSV header and cache indices.
+	Map<StringName, int> sig_map;
+	Vector<String> signatures;
+	signatures.resize(possible_signatures.size());
+	int sig_index = 0;
+	for (const Set<StringName>::Element *E = possible_signatures.front(); E; E = E->next()) {
+		signatures.write[sig_index] = E->get();
+		sig_map[E->get()] = sig_index;
+		sig_index++;
 	}
 	res.push_back(signatures);
 
 	// values
 	Vector<String> values;
-	values.resize(signatures.size());
 
 	int index = last_metric;
 
@@ -535,20 +547,23 @@ Vector<Vector<String>> EditorProfiler::get_data_as_csv() const {
 			index = 0;
 		}
 
-		if (!frame_metrics[index].valid) {
+		const Metric &m = frame_metrics[index];
+
+		if (!m.valid) {
 			continue;
 		}
-		int it = 0;
-		const Vector<EditorProfiler::Metric::Category> &frame_cat = frame_metrics[index].categories;
 
-		for (int j = 0; j < frame_cat.size(); j++) {
-			const EditorProfiler::Metric::Category &c = frame_cat[j];
-			values.write[it++] = String::num_real(c.total_time);
+		// Don't keep old values since there may be empty cells.
+		values.clear();
+		values.resize(possible_signatures.size());
 
-			for (int k = 0; k < c.items.size(); k++) {
-				values.write[it++] = String::num_real(c.items[k].total);
-			}
+		for (Map<StringName, Metric::Category *>::Element *E = m.category_ptrs.front(); E; E = E->next()) {
+			values.write[sig_map[E->key()]] = String::num_real(E->value()->total_time);
 		}
+		for (Map<StringName, Metric::Category::Item *>::Element *E = m.item_ptrs.front(); E; E = E->next()) {
+			values.write[sig_map[E->key()]] = String::num_real(E->value()->total);
+		}
+
 		res.push_back(values);
 	}
 
@@ -616,13 +631,16 @@ EditorProfiler::EditorProfiler() {
 	variables->set_column_titles_visible(true);
 	variables->set_column_title(0, TTR("Name"));
 	variables->set_column_expand(0, true);
-	variables->set_column_min_width(0, 60 * EDSCALE);
+	variables->set_column_clip_content(0, true);
+	variables->set_column_expand_ratio(0, 60);
 	variables->set_column_title(1, TTR("Time"));
 	variables->set_column_expand(1, false);
-	variables->set_column_min_width(1, 100 * EDSCALE);
+	variables->set_column_clip_content(1, true);
+	variables->set_column_expand_ratio(1, 100);
 	variables->set_column_title(2, TTR("Calls"));
 	variables->set_column_expand(2, false);
-	variables->set_column_min_width(2, 60 * EDSCALE);
+	variables->set_column_clip_content(2, true);
+	variables->set_column_expand_ratio(2, 60);
 	variables->connect("item_edited", callable_mp(this, &EditorProfiler::_item_edited));
 
 	graph = memnew(TextureRect);

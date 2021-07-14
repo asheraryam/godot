@@ -32,7 +32,7 @@
 #define RESOURCE_H
 
 #include "core/object/class_db.h"
-#include "core/object/reference.h"
+#include "core/object/ref_counted.h"
 #include "core/templates/safe_refcount.h"
 #include "core/templates/self_list.h"
 
@@ -43,8 +43,8 @@ public:                                                                         
                                                                                                                     \
 private:
 
-class Resource : public Reference {
-	GDCLASS(Resource, Reference);
+class Resource : public RefCounted {
+	GDCLASS(Resource, RefCounted);
 	OBJ_CATEGORY("Resources");
 
 public:
@@ -88,7 +88,9 @@ protected:
 
 public:
 	static Node *(*_get_local_scene_func)(); //used by editor
+	static void (*_update_configuration_warning)(); //used by editor
 
+	void update_configuration_warning();
 	virtual bool editor_can_reload_from_file();
 	virtual void reset_state(); //for resources that use variable amount of properties, either via _validate_property or _get_property_list, this function needs to be implemented to correctly clear state
 	virtual Error copy_from(const Ref<Resource> &p_resource);

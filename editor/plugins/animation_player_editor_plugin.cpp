@@ -121,11 +121,11 @@ void AnimationPlayerEditor::_notification(int p_what) {
 				Ref<Image> reset_img = reset_icon->get_image();
 				Ref<Image> autoplay_reset_img;
 				Size2 icon_size = Size2(autoplay_img->get_width(), autoplay_img->get_height());
-				autoplay_reset_img.instance();
+				autoplay_reset_img.instantiate();
 				autoplay_reset_img->create(icon_size.x * 2, icon_size.y, false, autoplay_img->get_format());
 				autoplay_reset_img->blit_rect(autoplay_img, Rect2(Point2(), icon_size), Point2());
 				autoplay_reset_img->blit_rect(reset_img, Rect2(Point2(), icon_size), Point2(icon_size.x, 0));
-				autoplay_reset_icon.instance();
+				autoplay_reset_icon.instantiate();
 				autoplay_reset_icon->create_from_image(autoplay_reset_img);
 			}
 			stop->set_icon(get_theme_icon("Stop", "EditorIcons"));
@@ -569,8 +569,10 @@ void AnimationPlayerEditor::_animation_blend() {
 	blend_editor.dialog->popup_centered(Size2(400, 400) * EDSCALE);
 
 	blend_editor.tree->set_hide_root(true);
-	blend_editor.tree->set_column_min_width(0, 10);
-	blend_editor.tree->set_column_min_width(1, 3);
+	blend_editor.tree->set_column_expand_ratio(0, 10);
+	blend_editor.tree->set_column_clip_content(0, true);
+	blend_editor.tree->set_column_expand_ratio(1, 3);
+	blend_editor.tree->set_column_clip_content(1, true);
 
 	List<StringName> anims;
 	player->get_animation_list(&anims);
@@ -994,7 +996,7 @@ void AnimationPlayerEditor::_animation_duplicate() {
 	}
 }
 
-void AnimationPlayerEditor::_seek_value_changed(float p_value, bool p_set) {
+void AnimationPlayerEditor::_seek_value_changed(float p_value, bool p_set, bool p_timeline_only) {
 	if (updating || !player || player->is_playing()) {
 		return;
 	};
@@ -1015,18 +1017,18 @@ void AnimationPlayerEditor::_seek_value_changed(float p_value, bool p_set) {
 		pos = Math::snapped(pos, _get_editor_step());
 	}
 
-	if (player->is_valid() && !p_set) {
-		float cpos = player->get_current_animation_position();
+	if (!p_timeline_only) {
+		if (player->is_valid() && !p_set) {
+			float cpos = player->get_current_animation_position();
 
-		player->seek_delta(pos, pos - cpos);
-	} else {
-		player->stop(true);
-		player->seek(pos, true);
+			player->seek_delta(pos, pos - cpos);
+		} else {
+			player->stop(true);
+			player->seek(pos, true);
+		}
 	}
 
 	track_editor->set_anim_pos(pos);
-
-	updating = true;
 };
 
 void AnimationPlayerEditor::_animation_player_changed(Object *p_pl) {
@@ -1048,7 +1050,7 @@ void AnimationPlayerEditor::_animation_key_editor_anim_len_changed(float p_len) 
 	frame->set_max(p_len);
 }
 
-void AnimationPlayerEditor::_animation_key_editor_seek(float p_pos, bool p_drag) {
+void AnimationPlayerEditor::_animation_key_editor_seek(float p_pos, bool p_drag, bool p_timeline_only) {
 	timeline_position = p_pos;
 
 	if (!is_visible_in_tree()) {
@@ -1070,7 +1072,7 @@ void AnimationPlayerEditor::_animation_key_editor_seek(float p_pos, bool p_drag)
 	updating = true;
 	frame->set_value(Math::snapped(p_pos, _get_editor_step()));
 	updating = false;
-	_seek_value_changed(p_pos, !p_drag);
+	_seek_value_changed(p_pos, !p_drag, p_timeline_only);
 }
 
 void AnimationPlayerEditor::_animation_tool_menu(int p_option) {
@@ -1222,10 +1224,10 @@ void AnimationPlayerEditor::_unhandled_key_input(const Ref<InputEvent> &p_ev) {
 	ERR_FAIL_COND(p_ev.is_null());
 
 	Ref<InputEventKey> k = p_ev;
-	if (is_visible_in_tree() && k.is_valid() && k->is_pressed() && !k->is_echo() && !k->get_alt() && !k->get_control() && !k->get_metakey()) {
+	if (is_visible_in_tree() && k.is_valid() && k->is_pressed() && !k->is_echo() && !k->is_alt_pressed() && !k->is_ctrl_pressed() && !k->is_meta_pressed()) {
 		switch (k->get_keycode()) {
 			case KEY_A: {
-				if (!k->get_shift()) {
+				if (!k->is_shift_pressed()) {
 					_play_bw_from_pressed();
 				} else {
 					_play_bw_pressed();
@@ -1237,7 +1239,7 @@ void AnimationPlayerEditor::_unhandled_key_input(const Ref<InputEvent> &p_ev) {
 				accept_event();
 			} break;
 			case KEY_D: {
-				if (!k->get_shift()) {
+				if (!k->is_shift_pressed()) {
 					_play_from_pressed();
 				} else {
 					_play_pressed();
@@ -1693,8 +1695,8 @@ AnimationPlayerEditor::AnimationPlayerEditor(EditorNode *p_editor, AnimationPlay
 	animation->connect("item_selected", callable_mp(this, &AnimationPlayerEditor::_animation_selected));
 
 	file->connect("file_selected", callable_mp(this, &AnimationPlayerEditor::_dialog_action));
-	frame->connect("value_changed", callable_mp(this, &AnimationPlayerEditor::_seek_value_changed), make_binds(true));
-	scale->connect("text_entered", callable_mp(this, &AnimationPlayerEditor::_scale_changed));
+	frame->connect("value_changed", callable_mp(this, &AnimationPlayerEditor::_seek_value_changed), make_binds(true, false));
+	scale->connect("text_submitted", callable_mp(this, &AnimationPlayerEditor::_scale_changed));
 
 	renaming = false;
 	last_active = false;

@@ -31,8 +31,8 @@
 #include "test_gdscript.h"
 
 #include "core/config/project_settings.h"
+#include "core/io/file_access.h"
 #include "core/io/file_access_pack.h"
-#include "core/os/file_access.h"
 #include "core/os/main_loop.h"
 #include "core/os/os.h"
 #include "core/string/string_builder.h"
@@ -66,7 +66,7 @@ static void test_tokenizer(const String &p_code, const Vector<String> &p_lines) 
 		StringBuilder token;
 		token += " --> "; // Padding for line number.
 
-		for (int l = current.start_line; l <= current.end_line; l++) {
+		for (int l = current.start_line; l <= current.end_line && l <= p_lines.size(); l++) {
 			print_line(vformat("%04d %s", l, p_lines[l - 1]).replace("\t", tab));
 		}
 
@@ -118,6 +118,18 @@ static void test_parser(const String &p_code, const String &p_script_path, const
 			print_line(vformat("%02d:%02d: %s", error.line, error.column, error.message));
 		}
 	}
+
+	GDScriptAnalyzer analyzer(&parser);
+	analyzer.analyze();
+
+	if (err != OK) {
+		const List<GDScriptParser::ParserError> &errors = parser.get_errors();
+		for (const List<GDScriptParser::ParserError>::Element *E = errors.front(); E != nullptr; E = E->next()) {
+			const GDScriptParser::ParserError &error = E->get();
+			print_line(vformat("%02d:%02d: %s", error.line, error.column, error.message));
+		}
+	}
+
 #ifdef TOOLS_ENABLED
 	GDScriptParser::TreePrinter printer;
 	printer.print_tree(parser);
@@ -153,7 +165,7 @@ static void test_compiler(const String &p_code, const String &p_script_path, con
 
 	GDScriptCompiler compiler;
 	Ref<GDScript> script;
-	script.instance();
+	script.instantiate();
 	script->set_path(p_script_path);
 
 	err = compiler.compile(&parser, script.ptr(), false);
@@ -203,8 +215,8 @@ void test(TestType p_type) {
 	init_language(fa->get_path_absolute().get_base_dir());
 
 	Vector<uint8_t> buf;
-	int flen = fa->get_len();
-	buf.resize(fa->get_len() + 1);
+	uint64_t flen = fa->get_length();
+	buf.resize(flen + 1);
 	fa->get_buffer(buf.ptrw(), flen);
 	buf.write[flen] = 0;
 

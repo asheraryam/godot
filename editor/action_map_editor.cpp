@@ -63,7 +63,7 @@ static const char *_joy_axis_descriptions[JOY_AXIS_MAX * 2] = {
 String InputEventConfigurationDialog::get_event_text(const Ref<InputEvent> &p_event) {
 	ERR_FAIL_COND_V_MSG(p_event.is_null(), String(), "Provided event is not a valid instance of InputEvent");
 
-	// Joypad motion events will display slighlty differently than what the event->as_text() provides. See #43660.
+	// Joypad motion events will display slightly differently than what the event->as_text() provides. See #43660.
 	Ref<InputEventJoypadMotion> jpmotion = p_event;
 	if (jpmotion.is_valid()) {
 		String desc = TTR("Unknown Joypad Axis");
@@ -97,11 +97,11 @@ void InputEventConfigurationDialog::_set_event(const Ref<InputEvent> &p_event) {
 
 		if (mod.is_valid()) {
 			show_mods = true;
-			mod_checkboxes[MOD_ALT]->set_pressed(mod->get_alt());
-			mod_checkboxes[MOD_SHIFT]->set_pressed(mod->get_shift());
-			mod_checkboxes[MOD_COMMAND]->set_pressed(mod->get_command());
-			mod_checkboxes[MOD_CONTROL]->set_pressed(mod->get_control());
-			mod_checkboxes[MOD_META]->set_pressed(mod->get_metakey());
+			mod_checkboxes[MOD_ALT]->set_pressed(mod->is_alt_pressed());
+			mod_checkboxes[MOD_SHIFT]->set_pressed(mod->is_shift_pressed());
+			mod_checkboxes[MOD_COMMAND]->set_pressed(mod->is_command_pressed());
+			mod_checkboxes[MOD_CTRL]->set_pressed(mod->is_ctrl_pressed());
+			mod_checkboxes[MOD_META]->set_pressed(mod->is_meta_pressed());
 
 			store_command_checkbox->set_pressed(mod->is_storing_command());
 		}
@@ -122,9 +122,9 @@ void InputEventConfigurationDialog::_set_event(const Ref<InputEvent> &p_event) {
 
 		// Update selected item in input list for keys, joybuttons and joyaxis only (since the mouse cannot be "listened" for).
 		if (k.is_valid() || joyb.is_valid() || joym.is_valid()) {
-			TreeItem *category = input_list_tree->get_root()->get_children();
+			TreeItem *category = input_list_tree->get_root()->get_first_child();
 			while (category) {
-				TreeItem *input_item = category->get_children();
+				TreeItem *input_item = category->get_first_child();
 
 				// has_type this should be always true, unless the tree structure has been misconfigured.
 				bool has_type = input_item->get_parent()->has_meta("__type");
@@ -310,7 +310,7 @@ void InputEventConfigurationDialog::_update_input_list() {
 		MouseButton mouse_buttons[9] = { MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE, MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN, MOUSE_BUTTON_WHEEL_LEFT, MOUSE_BUTTON_WHEEL_RIGHT, MOUSE_BUTTON_XBUTTON1, MOUSE_BUTTON_XBUTTON2 };
 		for (int i = 0; i < 9; i++) {
 			Ref<InputEventMouseButton> mb;
-			mb.instance();
+			mb.instantiate();
 			mb->set_button_index(mouse_buttons[i]);
 			String desc = get_event_text(mb);
 
@@ -333,8 +333,8 @@ void InputEventConfigurationDialog::_update_input_list() {
 
 		for (int i = 0; i < JOY_BUTTON_MAX; i++) {
 			Ref<InputEventJoypadButton> joyb;
-			joyb.instance();
-			joyb->set_button_index(i);
+			joyb.instantiate();
+			joyb->set_button_index((JoyButton)i);
 			String desc = get_event_text(joyb);
 
 			if (!search_term.is_empty() && desc.findn(search_term) == -1) {
@@ -358,8 +358,8 @@ void InputEventConfigurationDialog::_update_input_list() {
 			int axis = i / 2;
 			int direction = (i & 1) ? 1 : -1;
 			Ref<InputEventJoypadMotion> joym;
-			joym.instance();
-			joym->set_axis(axis);
+			joym.instantiate();
+			joym->set_axis((JoyAxis)axis);
 			joym->set_axis_value(direction);
 			String desc = get_event_text(joym);
 
@@ -384,15 +384,15 @@ void InputEventConfigurationDialog::_mod_toggled(bool p_checked, int p_index) {
 	}
 
 	if (p_index == 0) {
-		ie->set_alt(p_checked);
+		ie->set_alt_pressed(p_checked);
 	} else if (p_index == 1) {
-		ie->set_shift(p_checked);
+		ie->set_shift_pressed(p_checked);
 	} else if (p_index == 2) {
-		ie->set_command(p_checked);
+		ie->set_command_pressed(p_checked);
 	} else if (p_index == 3) {
-		ie->set_control(p_checked);
+		ie->set_ctrl_pressed(p_checked);
 	} else if (p_index == 4) {
-		ie->set_metakey(p_checked);
+		ie->set_meta_pressed(p_checked);
 	}
 
 	_set_event(ie);
@@ -413,7 +413,7 @@ void InputEventConfigurationDialog::_store_command_toggled(bool p_checked) {
 		mod_checkboxes[MOD_COMMAND]->show();
 		mod_checkboxes[MOD_COMMAND]->set_text("Meta (Command)");
 #else
-		mod_checkboxes[MOD_CONTROL]->hide();
+		mod_checkboxes[MOD_CTRL]->hide();
 
 		mod_checkboxes[MOD_COMMAND]->show();
 		mod_checkboxes[MOD_COMMAND]->set_text("Control (Command)");
@@ -421,7 +421,7 @@ void InputEventConfigurationDialog::_store_command_toggled(bool p_checked) {
 	} else {
 		// If not, hide Command, show Control and Meta.
 		mod_checkboxes[MOD_COMMAND]->hide();
-		mod_checkboxes[MOD_CONTROL]->show();
+		mod_checkboxes[MOD_CTRL]->show();
 		mod_checkboxes[MOD_META]->show();
 	}
 }
@@ -458,7 +458,7 @@ void InputEventConfigurationDialog::_input_list_item_selected() {
 		case InputEventConfigurationDialog::INPUT_KEY: {
 			int kc = selected->get_meta("__keycode");
 			Ref<InputEventKey> k;
-			k.instance();
+			k.instantiate();
 
 			if (physical_key_checkbox->is_pressed()) {
 				k->set_physical_keycode(kc);
@@ -469,11 +469,11 @@ void InputEventConfigurationDialog::_input_list_item_selected() {
 			}
 
 			// Maintain modifier state from checkboxes
-			k->set_alt(mod_checkboxes[MOD_ALT]->is_pressed());
-			k->set_shift(mod_checkboxes[MOD_SHIFT]->is_pressed());
-			k->set_command(mod_checkboxes[MOD_COMMAND]->is_pressed());
-			k->set_control(mod_checkboxes[MOD_CONTROL]->is_pressed());
-			k->set_metakey(mod_checkboxes[MOD_META]->is_pressed());
+			k->set_alt_pressed(mod_checkboxes[MOD_ALT]->is_pressed());
+			k->set_shift_pressed(mod_checkboxes[MOD_SHIFT]->is_pressed());
+			k->set_command_pressed(mod_checkboxes[MOD_COMMAND]->is_pressed());
+			k->set_ctrl_pressed(mod_checkboxes[MOD_CTRL]->is_pressed());
+			k->set_meta_pressed(mod_checkboxes[MOD_META]->is_pressed());
 			k->set_store_command(store_command_checkbox->is_pressed());
 
 			_set_event(k);
@@ -481,21 +481,21 @@ void InputEventConfigurationDialog::_input_list_item_selected() {
 		case InputEventConfigurationDialog::INPUT_MOUSE_BUTTON: {
 			int idx = selected->get_meta("__index");
 			Ref<InputEventMouseButton> mb;
-			mb.instance();
-			mb->set_button_index(idx);
+			mb.instantiate();
+			mb->set_button_index((MouseButton)idx);
 			// Maintain modifier state from checkboxes
-			mb->set_alt(mod_checkboxes[MOD_ALT]->is_pressed());
-			mb->set_shift(mod_checkboxes[MOD_SHIFT]->is_pressed());
-			mb->set_command(mod_checkboxes[MOD_COMMAND]->is_pressed());
-			mb->set_control(mod_checkboxes[MOD_CONTROL]->is_pressed());
-			mb->set_metakey(mod_checkboxes[MOD_META]->is_pressed());
+			mb->set_alt_pressed(mod_checkboxes[MOD_ALT]->is_pressed());
+			mb->set_shift_pressed(mod_checkboxes[MOD_SHIFT]->is_pressed());
+			mb->set_command_pressed(mod_checkboxes[MOD_COMMAND]->is_pressed());
+			mb->set_ctrl_pressed(mod_checkboxes[MOD_CTRL]->is_pressed());
+			mb->set_meta_pressed(mod_checkboxes[MOD_META]->is_pressed());
 			mb->set_store_command(store_command_checkbox->is_pressed());
 
 			_set_event(mb);
 		} break;
 		case InputEventConfigurationDialog::INPUT_JOY_BUTTON: {
 			int idx = selected->get_meta("__index");
-			Ref<InputEventJoypadButton> jb = InputEventJoypadButton::create_reference(idx);
+			Ref<InputEventJoypadButton> jb = InputEventJoypadButton::create_reference((JoyButton)idx);
 			_set_event(jb);
 		} break;
 		case InputEventConfigurationDialog::INPUT_JOY_MOTION: {
@@ -503,8 +503,8 @@ void InputEventConfigurationDialog::_input_list_item_selected() {
 			int value = selected->get_meta("__value");
 
 			Ref<InputEventJoypadMotion> jm;
-			jm.instance();
-			jm->set_axis(axis);
+			jm.instantiate();
+			jm->set_axis((JoyAxis)axis);
 			jm->set_axis_value(value);
 			_set_event(jm);
 		} break;
@@ -631,6 +631,7 @@ InputEventConfigurationDialog::InputEventConfigurationDialog() {
 	additional_options_container->hide();
 
 	Label *opts_label = memnew(Label);
+	opts_label->set_theme_type_variation("HeaderSmall");
 	opts_label->set_text("Additional Options");
 	additional_options_container->add_child(opts_label);
 
@@ -639,6 +640,7 @@ InputEventConfigurationDialog::InputEventConfigurationDialog() {
 	device_container->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 
 	Label *device_label = memnew(Label);
+	device_label->set_theme_type_variation("HeaderSmall");
 	device_label->set_text("Device:");
 	device_container->add_child(device_label);
 
@@ -730,12 +732,8 @@ void ActionMapEditor::_add_action_pressed() {
 }
 
 void ActionMapEditor::_add_action(const String &p_name) {
-	if (!allow_editing_actions) {
-		return;
-	}
-
 	if (p_name == "" || !_is_action_name_valid(p_name)) {
-		show_message(TTR("Invalid action name. it cannot be.is_empty()() nor contain '/', ':', '=', '\\' or '\"'"));
+		show_message(TTR("Invalid action name. It cannot be empty nor contain '/', ':', '=', '\\' or '\"'"));
 		return;
 	}
 
@@ -744,10 +742,6 @@ void ActionMapEditor::_add_action(const String &p_name) {
 }
 
 void ActionMapEditor::_action_edited() {
-	if (!allow_editing_actions) {
-		return;
-	}
-
 	TreeItem *ti = action_tree->get_edited();
 	if (!ti) {
 		return;
@@ -764,7 +758,7 @@ void ActionMapEditor::_action_edited() {
 
 		if (new_name == "" || !_is_action_name_valid(new_name)) {
 			ti->set_text(0, old_name);
-			show_message(TTR("Invalid action name. it cannot be.is_empty()() nor contain '/', ':', '=', '\\' or '\"'"));
+			show_message(TTR("Invalid action name. It cannot be empty nor contain '/', ':', '=', '\\' or '\"'"));
 			return;
 		}
 
@@ -812,10 +806,6 @@ void ActionMapEditor::_tree_button_pressed(Object *p_item, int p_column, int p_i
 
 		} break;
 		case ActionMapEditor::BUTTON_REMOVE_ACTION: {
-			if (!allow_editing_actions) {
-				break;
-			}
-
 			// Send removed action name
 			String name = item->get_meta("__name");
 			emit_signal("action_removed", name);
@@ -848,11 +838,11 @@ void ActionMapEditor::_tree_item_activated() {
 	_tree_button_pressed(item, 2, BUTTON_EDIT_EVENT);
 }
 
-void ActionMapEditor::set_show_uneditable(bool p_show) {
-	show_uneditable = p_show;
-	show_uneditable_actions_checkbox->set_pressed(p_show);
+void ActionMapEditor::set_show_builtin_actions(bool p_show) {
+	show_builtin_actions = p_show;
+	show_builtin_actions_checkbutton->set_pressed(p_show);
 
-	// Prevent unnecessary updates of action list when cache is.is_empty()().
+	// Prevent unnecessary updates of action list when cache is empty.
 	if (!actions_cache.is_empty()) {
 		update_action_list();
 	}
@@ -870,6 +860,7 @@ Variant ActionMapEditor::get_drag_data_fw(const Point2 &p_point, Control *p_from
 
 	String name = selected->get_text(0);
 	Label *label = memnew(Label(name));
+	label->set_theme_type_variation("HeaderSmall");
 	label->set_modulate(Color(1, 1, 1, 1.0f));
 	action_tree->set_drag_preview(label);
 
@@ -981,9 +972,9 @@ void ActionMapEditor::_notification(int p_what) {
 }
 
 void ActionMapEditor::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("get_drag_data_fw"), &ActionMapEditor::get_drag_data_fw);
-	ClassDB::bind_method(D_METHOD("can_drop_data_fw"), &ActionMapEditor::can_drop_data_fw);
-	ClassDB::bind_method(D_METHOD("drop_data_fw"), &ActionMapEditor::drop_data_fw);
+	ClassDB::bind_method(D_METHOD("_get_drag_data_fw"), &ActionMapEditor::get_drag_data_fw);
+	ClassDB::bind_method(D_METHOD("_can_drop_data_fw"), &ActionMapEditor::can_drop_data_fw);
+	ClassDB::bind_method(D_METHOD("_drop_data_fw"), &ActionMapEditor::drop_data_fw);
 
 	ADD_SIGNAL(MethodInfo("action_added", PropertyInfo(Variant::STRING, "name")));
 	ADD_SIGNAL(MethodInfo("action_edited", PropertyInfo(Variant::STRING, "name"), PropertyInfo(Variant::DICTIONARY, "new_action")));
@@ -1022,7 +1013,7 @@ void ActionMapEditor::update_action_list(const Vector<ActionInfo> &p_action_info
 			continue;
 		}
 
-		if (!action_info.editable && !show_uneditable) {
+		if (!action_info.editable && !show_builtin_actions) {
 			continue;
 		}
 
@@ -1080,15 +1071,6 @@ void ActionMapEditor::show_message(const String &p_message) {
 	message->popup_centered(Size2(300, 100) * EDSCALE);
 }
 
-void ActionMapEditor::set_allow_editing_actions(bool p_allow) {
-	allow_editing_actions = p_allow;
-	add_hbox->set_visible(p_allow);
-}
-
-void ActionMapEditor::set_toggle_editable_label(const String &p_label) {
-	show_uneditable_actions_checkbox->set_text(p_label);
-}
-
 void ActionMapEditor::use_external_search_box(LineEdit *p_searchbox) {
 	memdelete(action_list_search);
 	action_list_search = p_searchbox;
@@ -1096,8 +1078,7 @@ void ActionMapEditor::use_external_search_box(LineEdit *p_searchbox) {
 }
 
 ActionMapEditor::ActionMapEditor() {
-	allow_editing_actions = true;
-	show_uneditable = true;
+	show_builtin_actions = false;
 
 	// Main Vbox Container
 	VBoxContainer *main_vbox = memnew(VBoxContainer);
@@ -1114,11 +1095,11 @@ ActionMapEditor::ActionMapEditor() {
 	action_list_search->connect("text_changed", callable_mp(this, &ActionMapEditor::_search_term_updated));
 	top_hbox->add_child(action_list_search);
 
-	show_uneditable_actions_checkbox = memnew(CheckBox);
-	show_uneditable_actions_checkbox->set_pressed(false);
-	show_uneditable_actions_checkbox->set_text(TTR("Show Uneditable Actions"));
-	show_uneditable_actions_checkbox->connect("toggled", callable_mp(this, &ActionMapEditor::set_show_uneditable));
-	top_hbox->add_child(show_uneditable_actions_checkbox);
+	show_builtin_actions_checkbutton = memnew(CheckButton);
+	show_builtin_actions_checkbutton->set_pressed(false);
+	show_builtin_actions_checkbutton->set_text(TTR("Show Built-in Actions"));
+	show_builtin_actions_checkbutton->connect("toggled", callable_mp(this, &ActionMapEditor::set_show_builtin_actions));
+	top_hbox->add_child(show_builtin_actions_checkbutton);
 
 	// Adding Action line edit + button
 	add_hbox = memnew(HBoxContainer);
@@ -1128,11 +1109,11 @@ ActionMapEditor::ActionMapEditor() {
 	add_edit->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	add_edit->set_placeholder(TTR("Add New Action"));
 	add_edit->set_clear_button_enabled(true);
-	add_edit->connect("text_entered", callable_mp(this, &ActionMapEditor::_add_action));
+	add_edit->connect("text_submitted", callable_mp(this, &ActionMapEditor::_add_action));
 	add_hbox->add_child(add_edit);
 
 	Button *add_button = memnew(Button);
-	add_button->set_text("Add");
+	add_button->set_text(TTR("Add"));
 	add_button->connect("pressed", callable_mp(this, &ActionMapEditor::_add_action_pressed));
 	add_hbox->add_child(add_button);
 
@@ -1145,11 +1126,12 @@ ActionMapEditor::ActionMapEditor() {
 	action_tree->set_hide_root(true);
 	action_tree->set_column_titles_visible(true);
 	action_tree->set_column_title(0, TTR("Action"));
+	action_tree->set_column_clip_content(0, true);
 	action_tree->set_column_title(1, TTR("Deadzone"));
 	action_tree->set_column_expand(1, false);
-	action_tree->set_column_min_width(1, 80 * EDSCALE);
+	action_tree->set_column_custom_minimum_width(1, 80 * EDSCALE);
 	action_tree->set_column_expand(2, false);
-	action_tree->set_column_min_width(2, 50 * EDSCALE);
+	action_tree->set_column_custom_minimum_width(2, 50 * EDSCALE);
 	action_tree->connect("item_edited", callable_mp(this, &ActionMapEditor::_action_edited));
 	action_tree->connect("item_activated", callable_mp(this, &ActionMapEditor::_tree_item_activated));
 	action_tree->connect("button_pressed", callable_mp(this, &ActionMapEditor::_tree_button_pressed));

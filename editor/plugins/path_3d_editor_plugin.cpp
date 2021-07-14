@@ -94,8 +94,8 @@ void Path3DGizmo::set_handle(int p_idx, Camera3D *p_camera, const Point2 &p_poin
 		return;
 	}
 
-	Transform gt = path->get_global_transform();
-	Transform gi = gt.affine_inverse();
+	Transform3D gt = path->get_global_transform();
+	Transform3D gi = gt.affine_inverse();
 	Vector3 ray_from = p_camera->project_ray_origin(p_point);
 	Vector3 ray_dir = p_camera->project_ray_normal(p_point);
 
@@ -302,8 +302,8 @@ bool Path3DEditorPlugin::forward_spatial_gui_input(Camera3D *p_camera, const Ref
 	if (c.is_null()) {
 		return false;
 	}
-	Transform gt = path->get_global_transform();
-	Transform it = gt.affine_inverse();
+	Transform3D gt = path->get_global_transform();
+	Transform3D it = gt.affine_inverse();
 
 	static const int click_dist = 10; //should make global
 
@@ -316,7 +316,7 @@ bool Path3DEditorPlugin::forward_spatial_gui_input(Camera3D *p_camera, const Ref
 			set_handle_clicked(false);
 		}
 
-		if (mb->is_pressed() && mb->get_button_index() == MOUSE_BUTTON_LEFT && (curve_create->is_pressed() || (curve_edit->is_pressed() && mb->get_control()))) {
+		if (mb->is_pressed() && mb->get_button_index() == MOUSE_BUTTON_LEFT && (curve_create->is_pressed() || (curve_edit->is_pressed() && mb->is_ctrl_pressed()))) {
 			//click into curve, break it down
 			Vector<Vector3> v3a = c->tessellate();
 			int idx = 0;
@@ -554,7 +554,7 @@ Path3DEditorPlugin::Path3DEditorPlugin(EditorNode *p_node) {
 	mirror_handle_length = true;
 
 	Ref<Path3DGizmoPlugin> gizmo_plugin;
-	gizmo_plugin.instance();
+	gizmo_plugin.instantiate();
 	Node3DEditor::get_singleton()->add_gizmo_plugin(gizmo_plugin);
 
 	sep = memnew(VSeparator);

@@ -116,6 +116,10 @@ static Vector<uint8_t> _compile_shader_glsl(RenderingDevice::ShaderStage p_stage
 		}
 	}
 
+	if (p_capabilities->supports_multiview) {
+		preamble += "#define has_VK_KHR_multiview 1\n";
+	}
+
 	if (preamble != "") {
 		shader.setPreamble(preamble.c_str());
 	}
@@ -173,10 +177,16 @@ static Vector<uint8_t> _compile_shader_glsl(RenderingDevice::ShaderStage p_stage
 	ret.resize(SpirV.size() * sizeof(uint32_t));
 	{
 		uint8_t *w = ret.ptrw();
-		copymem(w, &SpirV[0], SpirV.size() * sizeof(uint32_t));
+		memcpy(w, &SpirV[0], SpirV.size() * sizeof(uint32_t));
 	}
 
 	return ret;
+}
+
+static String _get_cache_key_function_glsl(const RenderingDevice::Capabilities *p_capabilities) {
+	String version;
+	version = "SpirVGen=" + itos(glslang::GetSpirvGeneratorVersion()) + ", major=" + itos(p_capabilities->version_major) + ", minor=" + itos(p_capabilities->version_minor) + " , subgroup_size=" + itos(p_capabilities->subgroup_operations) + " , subgroup_ops=" + itos(p_capabilities->subgroup_operations) + " , subgroup_in_shaders=" + itos(p_capabilities->subgroup_in_shaders);
+	return version;
 }
 
 void preregister_glslang_types() {
@@ -184,6 +194,7 @@ void preregister_glslang_types() {
 	// and it's safe to call multiple times
 	glslang::InitializeProcess();
 	RenderingDevice::shader_set_compile_function(_compile_shader_glsl);
+	RenderingDevice::shader_set_get_cache_key_function(_get_cache_key_function_glsl);
 }
 
 void register_glslang_types() {

@@ -31,8 +31,8 @@
 #include "resource_loader.h"
 
 #include "core/config/project_settings.h"
+#include "core/io/file_access.h"
 #include "core/io/resource_importer.h"
-#include "core/os/file_access.h"
 #include "core/os/os.h"
 #include "core/string/print_string.h"
 #include "core/string/translation.h"
@@ -68,17 +68,17 @@ bool ResourceFormatLoader::recognize_path(const String &p_path, const String &p_
 }
 
 bool ResourceFormatLoader::handles_type(const String &p_type) const {
-	if (get_script_instance() && get_script_instance()->has_method("handles_type")) {
+	if (get_script_instance() && get_script_instance()->has_method("_handles_type")) {
 		// I guess custom loaders for custom resources should use "Resource"
-		return get_script_instance()->call("handles_type", p_type);
+		return get_script_instance()->call("_handles_type", p_type);
 	}
 
 	return false;
 }
 
 String ResourceFormatLoader::get_resource_type(const String &p_path) const {
-	if (get_script_instance() && get_script_instance()->has_method("get_resource_type")) {
-		return get_script_instance()->call("get_resource_type", p_path);
+	if (get_script_instance() && get_script_instance()->has_method("_get_resource_type")) {
+		return get_script_instance()->call("_get_resource_type", p_path);
 	}
 
 	return "";
@@ -101,8 +101,8 @@ bool ResourceFormatLoader::exists(const String &p_path) const {
 }
 
 void ResourceFormatLoader::get_recognized_extensions(List<String> *p_extensions) const {
-	if (get_script_instance() && get_script_instance()->has_method("get_recognized_extensions")) {
-		PackedStringArray exts = get_script_instance()->call("get_recognized_extensions");
+	if (get_script_instance() && get_script_instance()->has_method("_get_recognized_extensions")) {
+		PackedStringArray exts = get_script_instance()->call("_get_recognized_extensions");
 
 		{
 			const String *r = exts.ptr();
@@ -114,30 +114,29 @@ void ResourceFormatLoader::get_recognized_extensions(List<String> *p_extensions)
 }
 
 RES ResourceFormatLoader::load(const String &p_path, const String &p_original_path, Error *r_error, bool p_use_sub_threads, float *r_progress, CacheMode p_cache_mode) {
-	if (get_script_instance() && get_script_instance()->has_method("load")) {
-		Variant res = get_script_instance()->call("load", p_path, p_original_path, p_use_sub_threads, p_cache_mode);
+	// Check user-defined loader if there's any. Hard fail if it returns an error.
+	if (get_script_instance() && get_script_instance()->has_method("_load")) {
+		Variant res = get_script_instance()->call("_load", p_path, p_original_path, p_use_sub_threads, p_cache_mode);
 
-		if (res.get_type() == Variant::INT) {
+		if (res.get_type() == Variant::INT) { // Error code, abort.
 			if (r_error) {
 				*r_error = (Error)res.operator int64_t();
 			}
-
-		} else {
+			return RES();
+		} else { // Success, pass on result.
 			if (r_error) {
 				*r_error = OK;
 			}
 			return res;
 		}
-
-		return res;
 	}
 
-	ERR_FAIL_V_MSG(RES(), "Failed to load resource '" + p_path + "', ResourceFormatLoader::load was not implemented for this resource type.");
+	ERR_FAIL_V_MSG(RES(), "Failed to load resource '" + p_path + "'. ResourceFormatLoader::load was not implemented for this resource type.");
 }
 
 void ResourceFormatLoader::get_dependencies(const String &p_path, List<String> *p_dependencies, bool p_add_types) {
-	if (get_script_instance() && get_script_instance()->has_method("get_dependencies")) {
-		PackedStringArray deps = get_script_instance()->call("get_dependencies", p_path, p_add_types);
+	if (get_script_instance() && get_script_instance()->has_method("_get_dependencies")) {
+		PackedStringArray deps = get_script_instance()->call("_get_dependencies", p_path, p_add_types);
 
 		{
 			const String *r = deps.ptr();
@@ -149,13 +148,13 @@ void ResourceFormatLoader::get_dependencies(const String &p_path, List<String> *
 }
 
 Error ResourceFormatLoader::rename_dependencies(const String &p_path, const Map<String, String> &p_map) {
-	if (get_script_instance() && get_script_instance()->has_method("rename_dependencies")) {
+	if (get_script_instance() && get_script_instance()->has_method("_rename_dependencies")) {
 		Dictionary deps_dict;
 		for (Map<String, String>::Element *E = p_map.front(); E; E = E->next()) {
 			deps_dict[E->key()] = E->value();
 		}
 
-		int64_t res = get_script_instance()->call("rename_dependencies", deps_dict);
+		int64_t res = get_script_instance()->call("_rename_dependencies", deps_dict);
 		return (Error)res;
 	}
 
@@ -164,16 +163,16 @@ Error ResourceFormatLoader::rename_dependencies(const String &p_path, const Map<
 
 void ResourceFormatLoader::_bind_methods() {
 	{
-		MethodInfo info = MethodInfo(Variant::NIL, "load", PropertyInfo(Variant::STRING, "path"), PropertyInfo(Variant::STRING, "original_path"), PropertyInfo(Variant::BOOL, "use_sub_threads"), PropertyInfo(Variant::INT, "cache_mode"));
+		MethodInfo info = MethodInfo(Variant::NIL, "_load", PropertyInfo(Variant::STRING, "path"), PropertyInfo(Variant::STRING, "original_path"), PropertyInfo(Variant::BOOL, "use_sub_threads"), PropertyInfo(Variant::INT, "cache_mode"));
 		info.return_val.usage |= PROPERTY_USAGE_NIL_IS_VARIANT;
-		ClassDB::add_virtual_method(get_class_static(), info);
+		BIND_VMETHOD(info);
 	}
 
-	ClassDB::add_virtual_method(get_class_static(), MethodInfo(Variant::PACKED_STRING_ARRAY, "get_recognized_extensions"));
-	ClassDB::add_virtual_method(get_class_static(), MethodInfo(Variant::BOOL, "handles_type", PropertyInfo(Variant::STRING_NAME, "typename")));
-	ClassDB::add_virtual_method(get_class_static(), MethodInfo(Variant::STRING, "get_resource_type", PropertyInfo(Variant::STRING, "path")));
-	ClassDB::add_virtual_method(get_class_static(), MethodInfo("get_dependencies", PropertyInfo(Variant::STRING, "path"), PropertyInfo(Variant::STRING, "add_types")));
-	ClassDB::add_virtual_method(get_class_static(), MethodInfo(Variant::INT, "rename_dependencies", PropertyInfo(Variant::STRING, "path"), PropertyInfo(Variant::STRING, "renames")));
+	BIND_VMETHOD(MethodInfo(Variant::PACKED_STRING_ARRAY, "_get_recognized_extensions"));
+	BIND_VMETHOD(MethodInfo(Variant::BOOL, "_handles_type", PropertyInfo(Variant::STRING_NAME, "typename")));
+	BIND_VMETHOD(MethodInfo(Variant::STRING, "_get_resource_type", PropertyInfo(Variant::STRING, "path")));
+	BIND_VMETHOD(MethodInfo("_get_dependencies", PropertyInfo(Variant::STRING, "path"), PropertyInfo(Variant::STRING, "add_types")));
+	BIND_VMETHOD(MethodInfo(Variant::INT, "_rename_dependencies", PropertyInfo(Variant::STRING, "path"), PropertyInfo(Variant::STRING, "renames")));
 
 	BIND_ENUM_CONSTANT(CACHE_MODE_IGNORE);
 	BIND_ENUM_CONSTANT(CACHE_MODE_REUSE);
@@ -355,7 +354,7 @@ Error ResourceLoader::load_threaded_request(const String &p_path, const String &
 
 	ThreadLoadTask &load_task = thread_load_tasks[local_path];
 
-	if (load_task.resource.is_null()) { //needs  to be loaded in thread
+	if (load_task.resource.is_null()) { //needs to be loaded in thread
 
 		load_task.semaphore = memnew(Semaphore);
 		if (thread_loading_count < thread_load_max) {
@@ -868,7 +867,7 @@ String ResourceLoader::_path_remap(const String &p_path, bool *r_translation_rem
 				continue;
 			}
 
-			String l = res_remaps[i].right(split + 1).strip_edges();
+			String l = res_remaps[i].substr(split + 1).strip_edges();
 			if (l == locale) { // Exact match.
 				new_path = res_remaps[i].left(split);
 				break;
@@ -1046,7 +1045,7 @@ bool ResourceLoader::add_custom_resource_format_loader(String script_path) {
 	bool valid_type = ClassDB::is_parent_class(ibt, "ResourceFormatLoader");
 	ERR_FAIL_COND_V_MSG(!valid_type, false, "Script does not inherit a CustomResourceLoader: " + script_path + ".");
 
-	Object *obj = ClassDB::instance(ibt);
+	Object *obj = ClassDB::instantiate(ibt);
 
 	ERR_FAIL_COND_V_MSG(obj == nullptr, false, "Cannot instance script as custom resource loader, expected 'ResourceFormatLoader' inheritance, got: " + String(ibt) + ".");
 

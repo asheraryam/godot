@@ -30,8 +30,8 @@
 
 #include "platform/javascript/display_server_javascript.h"
 
-#include "drivers/dummy/rasterizer_dummy.h"
 #include "platform/javascript/os_javascript.h"
+#include "servers/rendering/rasterizer_dummy.h"
 
 #include <emscripten.h>
 #include <png.h>
@@ -120,15 +120,15 @@ void DisplayServerJavaScript::request_quit_callback() {
 
 template <typename T>
 void DisplayServerJavaScript::dom2godot_mod(T *emscripten_event_ptr, Ref<InputEventWithModifiers> godot_event) {
-	godot_event->set_shift(emscripten_event_ptr->shiftKey);
-	godot_event->set_alt(emscripten_event_ptr->altKey);
-	godot_event->set_control(emscripten_event_ptr->ctrlKey);
-	godot_event->set_metakey(emscripten_event_ptr->metaKey);
+	godot_event->set_shift_pressed(emscripten_event_ptr->shiftKey);
+	godot_event->set_alt_pressed(emscripten_event_ptr->altKey);
+	godot_event->set_ctrl_pressed(emscripten_event_ptr->ctrlKey);
+	godot_event->set_meta_pressed(emscripten_event_ptr->metaKey);
 }
 
 Ref<InputEventKey> DisplayServerJavaScript::setup_key_event(const EmscriptenKeyboardEvent *emscripten_event) {
 	Ref<InputEventKey> ev;
-	ev.instance();
+	ev.instantiate();
 	ev->set_echo(emscripten_event->repeat);
 	dom2godot_mod(emscripten_event, ev);
 	ev->set_keycode(dom_code2godot_scancode(emscripten_event->code, emscripten_event->key, false));
@@ -181,7 +181,7 @@ EM_BOOL DisplayServerJavaScript::mouse_button_callback(int p_event_type, const E
 	DisplayServerJavaScript *display = get_singleton();
 
 	Ref<InputEventMouseButton> ev;
-	ev.instance();
+	ev.instantiate();
 	ev->set_pressed(p_event_type == EMSCRIPTEN_EVENT_MOUSEDOWN);
 	ev->set_position(compute_position_in_canvas(p_event->clientX, p_event->clientY));
 	ev->set_global_position(ev->get_position());
@@ -215,22 +215,22 @@ EM_BOOL DisplayServerJavaScript::mouse_button_callback(int p_event_type, const E
 				display->last_click_ms = 0;
 				display->last_click_pos = Point2(-100, -100);
 				display->last_click_button_index = -1;
-				ev->set_doubleclick(true);
+				ev->set_double_click(true);
 			}
 
 		} else {
 			display->last_click_button_index = ev->get_button_index();
 		}
 
-		if (!ev->is_doubleclick()) {
+		if (!ev->is_double_click()) {
 			display->last_click_ms += diff;
 			display->last_click_pos = ev->get_position();
 		}
 	}
 
 	Input *input = Input::get_singleton();
-	int mask = input->get_mouse_button_mask();
-	int button_flag = 1 << (ev->get_button_index() - 1);
+	MouseButton mask = input->get_mouse_button_mask();
+	MouseButton button_flag = MouseButton(1 << (ev->get_button_index() - 1));
 	if (ev->is_pressed()) {
 		// Since the event is consumed, focus manually. The containing iframe,
 		// if exists, may not have focus yet, so focus even if already focused.
@@ -261,7 +261,7 @@ EM_BOOL DisplayServerJavaScript::mousemove_callback(int p_event_type, const Emsc
 		return false;
 
 	Ref<InputEventMouseMotion> ev;
-	ev.instance();
+	ev.instantiate();
 	dom2godot_mod(p_event, ev);
 	ev->set_button_mask(input_mask);
 
@@ -399,7 +399,7 @@ void DisplayServerJavaScript::cursor_set_custom_image(const RES &p_cursor, Curso
 		godot_js_display_cursor_set_custom_shape(godot2dom_cursor(p_shape), png.ptr(), len, p_hotspot.x, p_hotspot.y);
 
 	} else {
-		godot_js_display_cursor_set_custom_shape(godot2dom_cursor(p_shape), NULL, 0, 0, 0);
+		godot_js_display_cursor_set_custom_shape(godot2dom_cursor(p_shape), nullptr, 0, 0, 0);
 	}
 
 	cursor_set_shape(cursor_shape);
@@ -407,9 +407,10 @@ void DisplayServerJavaScript::cursor_set_custom_image(const RES &p_cursor, Curso
 
 // Mouse mode
 void DisplayServerJavaScript::mouse_set_mode(MouseMode p_mode) {
-	ERR_FAIL_COND_MSG(p_mode == MOUSE_MODE_CONFINED, "MOUSE_MODE_CONFINED is not supported for the HTML5 platform.");
-	if (p_mode == mouse_get_mode())
+	ERR_FAIL_COND_MSG(p_mode == MOUSE_MODE_CONFINED || p_mode == MOUSE_MODE_CONFINED_HIDDEN, "MOUSE_MODE_CONFINED is not supported for the HTML5 platform.");
+	if (p_mode == mouse_get_mode()) {
 		return;
+	}
 
 	if (p_mode == MOUSE_MODE_VISIBLE) {
 		godot_js_display_cursor_set_visible(1);
@@ -451,14 +452,14 @@ EM_BOOL DisplayServerJavaScript::wheel_callback(int p_event_type, const Emscript
 
 	Input *input = Input::get_singleton();
 	Ref<InputEventMouseButton> ev;
-	ev.instance();
+	ev.instantiate();
 	ev->set_position(input->get_mouse_position());
 	ev->set_global_position(ev->get_position());
 
-	ev->set_shift(input->is_key_pressed(KEY_SHIFT));
-	ev->set_alt(input->is_key_pressed(KEY_ALT));
-	ev->set_control(input->is_key_pressed(KEY_CONTROL));
-	ev->set_metakey(input->is_key_pressed(KEY_META));
+	ev->set_shift_pressed(input->is_key_pressed(KEY_SHIFT));
+	ev->set_alt_pressed(input->is_key_pressed(KEY_ALT));
+	ev->set_ctrl_pressed(input->is_key_pressed(KEY_CTRL));
+	ev->set_meta_pressed(input->is_key_pressed(KEY_META));
 
 	if (p_event->deltaY < 0)
 		ev->set_button_index(MOUSE_BUTTON_WHEEL_UP);
@@ -477,11 +478,11 @@ EM_BOOL DisplayServerJavaScript::wheel_callback(int p_event_type, const Emscript
 	int button_flag = 1 << (ev->get_button_index() - 1);
 
 	ev->set_pressed(true);
-	ev->set_button_mask(input->get_mouse_button_mask() | button_flag);
+	ev->set_button_mask(MouseButton(input->get_mouse_button_mask() | button_flag));
 	input->parse_input_event(ev);
 
 	ev->set_pressed(false);
-	ev->set_button_mask(input->get_mouse_button_mask() & ~button_flag);
+	ev->set_button_mask(MouseButton(input->get_mouse_button_mask() & ~button_flag));
 	input->parse_input_event(ev);
 
 	return true;
@@ -491,7 +492,7 @@ EM_BOOL DisplayServerJavaScript::wheel_callback(int p_event_type, const Emscript
 EM_BOOL DisplayServerJavaScript::touch_press_callback(int p_event_type, const EmscriptenTouchEvent *p_event, void *p_user_data) {
 	DisplayServerJavaScript *display = get_singleton();
 	Ref<InputEventScreenTouch> ev;
-	ev.instance();
+	ev.instantiate();
 	int lowest_id_index = -1;
 	for (int i = 0; i < p_event->numTouches; ++i) {
 		const EmscriptenTouchPoint &touch = p_event->touches[i];
@@ -513,7 +514,7 @@ EM_BOOL DisplayServerJavaScript::touch_press_callback(int p_event_type, const Em
 EM_BOOL DisplayServerJavaScript::touchmove_callback(int p_event_type, const EmscriptenTouchEvent *p_event, void *p_user_data) {
 	DisplayServerJavaScript *display = get_singleton();
 	Ref<InputEventScreenDrag> ev;
-	ev.instance();
+	ev.instantiate();
 	int lowest_id_index = -1;
 	for (int i = 0; i < p_event->numTouches; ++i) {
 		const EmscriptenTouchPoint &touch = p_event->touches[i];
@@ -536,7 +537,7 @@ bool DisplayServerJavaScript::screen_is_touchscreen(int p_screen) const {
 	return godot_js_display_touchscreen_is_available();
 }
 
-// Virtual Keybaord
+// Virtual Keyboard
 void DisplayServerJavaScript::vk_input_text_callback(const char *p_text, int p_cursor) {
 	DisplayServerJavaScript *ds = DisplayServerJavaScript::get_singleton();
 	if (!ds || ds->input_text_callback.is_null()) {
@@ -552,12 +553,12 @@ void DisplayServerJavaScript::vk_input_text_callback(const char *p_text, int p_c
 	Input *input = Input::get_singleton();
 	Ref<InputEventKey> k;
 	for (int i = 0; i < p_cursor; i++) {
-		k.instance();
+		k.instantiate();
 		k->set_pressed(true);
 		k->set_echo(false);
 		k->set_keycode(KEY_RIGHT);
 		input->parse_input_event(k);
-		k.instance();
+		k.instantiate();
 		k->set_pressed(false);
 		k->set_echo(false);
 		k->set_keycode(KEY_RIGHT);
@@ -771,8 +772,8 @@ DisplayServerJavaScript::DisplayServerJavaScript(const String &p_rendering_drive
 #define SET_EM_CALLBACK(target, ev, cb)                                  \
 	result = emscripten_set_##ev##_callback(target, nullptr, true, &cb); \
 	EM_CHECK(ev)
-#define SET_EM_WINDOW_CALLBACK(ev, cb)                                                         \
-	result = emscripten_set_##ev##_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, false, &cb); \
+#define SET_EM_WINDOW_CALLBACK(ev, cb)                                                            \
+	result = emscripten_set_##ev##_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, false, &cb); \
 	EM_CHECK(ev)
 	// These callbacks from Emscripten's html5.h suffice to access most
 	// JavaScript APIs.
@@ -827,7 +828,6 @@ bool DisplayServerJavaScript::has_feature(Feature p_feature) const {
 		//case FEATURE_MOUSE_WARP:
 		//case FEATURE_NATIVE_DIALOG:
 		//case FEATURE_NATIVE_ICON:
-		//case FEATURE_NATIVE_VIDEO:
 		//case FEATURE_WINDOW_TRANSPARENCY:
 		//case FEATURE_KEEP_SCREEN_ON:
 		//case FEATURE_ORIENTATION:

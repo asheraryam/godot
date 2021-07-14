@@ -33,9 +33,9 @@
 #include "os_iphone.h"
 #import "app_delegate.h"
 #include "core/config/project_settings.h"
+#include "core/io/dir_access.h"
+#include "core/io/file_access.h"
 #include "core/io/file_access_pack.h"
-#include "core/os/dir_access.h"
-#include "core/os/file_access.h"
 #include "display_server_iphone.h"
 #include "drivers/unix/syslog_logger.h"
 #import "godot_view.h"
@@ -301,10 +301,6 @@ void OSIPhone::on_focus_out() {
 
 		[AppDelegate.viewController.godotView stopRendering];
 
-		if (DisplayServerIPhone::get_singleton() && DisplayServerIPhone::get_singleton()->native_video_is_playing()) {
-			DisplayServerIPhone::get_singleton()->native_video_pause();
-		}
-
 		audio_driver.stop();
 	}
 }
@@ -318,10 +314,6 @@ void OSIPhone::on_focus_in() {
 		}
 
 		[AppDelegate.viewController.godotView startRendering];
-
-		if (DisplayServerIPhone::get_singleton() && DisplayServerIPhone::get_singleton()->native_video_is_playing()) {
-			DisplayServerIPhone::get_singleton()->native_video_unpause();
-		}
 
 		audio_driver.start();
 	}

@@ -235,8 +235,8 @@ void EditorSettingsDialog::_update_shortcuts() {
 	// Before clearing the tree, take note of which categories are collapsed so that this state can be maintained when the tree is repopulated.
 	Map<String, bool> collapsed;
 
-	if (shortcuts->get_root() && shortcuts->get_root()->get_children()) {
-		for (TreeItem *item = shortcuts->get_root()->get_children(); item; item = item->get_next()) {
+	if (shortcuts->get_root() && shortcuts->get_root()->get_first_child()) {
+		for (TreeItem *item = shortcuts->get_root()->get_first_child(); item; item = item->get_next()) {
 			collapsed[item->get_text(0)] = item->is_collapsed();
 		}
 	}
@@ -261,25 +261,22 @@ void EditorSettingsDialog::_update_shortcuts() {
 	for (OrderedHashMap<StringName, InputMap::Action>::Element E = action_map.front(); E; E = E.next()) {
 		String action_name = E.key();
 
-		if (!shortcut_filter.is_subsequence_ofi(action_name)) {
-			continue;
-		}
-
 		InputMap::Action action = E.get();
 
 		Array events; // Need to get the list of events into an array so it can be set as metadata on the item.
 		Vector<String> event_strings;
 
-		List<Ref<InputEvent>> defaults = InputMap::get_singleton()->get_builtins().find(action_name).value();
-		// Remove all non-key events from the defaults.
-		for (List<Ref<InputEvent>>::Element *I = defaults.front(); I; I = I->next()) {
+		List<Ref<InputEvent>> all_default_events = InputMap::get_singleton()->get_builtins().find(action_name).value();
+		List<Ref<InputEventKey>> key_default_events;
+		// Remove all non-key events from the defaults. Only check keys, since we are in the editor.
+		for (List<Ref<InputEvent>>::Element *I = all_default_events.front(); I; I = I->next()) {
 			Ref<InputEventKey> k = I->get();
-			if (k.is_null()) {
-				I->erase();
+			if (k.is_valid()) {
+				key_default_events.push_back(k);
 			}
 		}
 
-		bool same_as_defaults = defaults.size() == action.inputs.size(); // Initially this is set to just whether the arrays are equal. Later we check the events if needed.
+		bool same_as_defaults = key_default_events.size() == action.inputs.size(); // Initially this is set to just whether the arrays are equal. Later we check the events if needed.
 
 		int count = 0;
 		for (List<Ref<InputEvent>>::Element *I = action.inputs.front(); I; I = I->next()) {
@@ -288,18 +285,18 @@ void EditorSettingsDialog::_update_shortcuts() {
 			event_strings.push_back(I->get()->as_text());
 
 			// Only check if the events have been the same so far - once one fails, we don't need to check any more.
-			if (same_as_defaults) {
-				Ref<InputEventKey> k = defaults[count];
-				// Only check keys, since we are in the editor.
-				if (k.is_valid() && !defaults[count]->shortcut_match(I->get())) {
-					same_as_defaults = false;
-				}
+			if (same_as_defaults && !key_default_events[count]->is_match(I->get())) {
+				same_as_defaults = false;
 			}
 			count++;
 		}
 
 		// Join the text of the events with a delimiter so they can all be displayed in one cell.
 		String events_display_string = event_strings.is_empty() ? "None" : String("; ").join(event_strings);
+
+		if (!shortcut_filter.is_subsequence_ofi(action_name) && (events_display_string == "None" || !shortcut_filter.is_subsequence_ofi(events_display_string))) {
+			continue;
+		}
 
 		TreeItem *item = shortcuts->create_item(common_section);
 		item->set_text(0, action_name);
@@ -383,7 +380,7 @@ void EditorSettingsDialog::_update_shortcuts() {
 	// remove sections with no shortcuts
 	for (Map<String, TreeItem *>::Element *E = sections.front(); E; E = E->next()) {
 		TreeItem *section = E->get();
-		if (section->get_children() == nullptr) {
+		if (section->get_first_child() == nullptr) {
 			root->remove_child(section);
 		}
 	}

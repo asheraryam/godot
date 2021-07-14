@@ -30,7 +30,7 @@
 
 #include "find_in_files.h"
 
-#include "core/os/dir_access.h"
+#include "core/io/dir_access.h"
 #include "core/os/os.h"
 #include "editor_node.h"
 #include "editor_scale.h"
@@ -311,7 +311,7 @@ FindInFilesDialog::FindInFilesDialog() {
 	_search_text_line_edit = memnew(LineEdit);
 	_search_text_line_edit->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	_search_text_line_edit->connect("text_changed", callable_mp(this, &FindInFilesDialog::_on_search_text_modified));
-	_search_text_line_edit->connect("text_entered", callable_mp(this, &FindInFilesDialog::_on_search_text_entered));
+	_search_text_line_edit->connect("text_submitted", callable_mp(this, &FindInFilesDialog::_on_search_text_submitted));
 	gc->add_child(_search_text_line_edit);
 
 	_replace_label = memnew(Label);
@@ -321,7 +321,7 @@ FindInFilesDialog::FindInFilesDialog() {
 
 	_replace_text_line_edit = memnew(LineEdit);
 	_replace_text_line_edit->set_h_size_flags(Control::SIZE_EXPAND_FILL);
-	_replace_text_line_edit->connect("text_entered", callable_mp(this, &FindInFilesDialog::_on_replace_text_entered));
+	_replace_text_line_edit->connect("text_submitted", callable_mp(this, &FindInFilesDialog::_on_replace_text_submitted));
 	_replace_text_line_edit->hide();
 	gc->add_child(_replace_text_line_edit);
 
@@ -503,7 +503,7 @@ void FindInFilesDialog::_on_search_text_modified(String text) {
 	_replace_button->set_disabled(get_search_text().is_empty());
 }
 
-void FindInFilesDialog::_on_search_text_entered(String text) {
+void FindInFilesDialog::_on_search_text_submitted(String text) {
 	// This allows to trigger a global search without leaving the keyboard
 	if (!_find_button->is_disabled()) {
 		if (_mode == SEARCH_MODE) {
@@ -518,7 +518,7 @@ void FindInFilesDialog::_on_search_text_entered(String text) {
 	}
 }
 
-void FindInFilesDialog::_on_replace_text_entered(String text) {
+void FindInFilesDialog::_on_replace_text_submitted(String text) {
 	// This allows to trigger a global search without leaving the keyboard
 	if (!_replace_button->is_disabled()) {
 		if (_mode == REPLACE_MODE) {
@@ -530,7 +530,7 @@ void FindInFilesDialog::_on_replace_text_entered(String text) {
 void FindInFilesDialog::_on_folder_selected(String path) {
 	int i = path.find("://");
 	if (i != -1) {
-		path = path.right(i + 3);
+		path = path.substr(i + 3);
 	}
 	_folder_line_edit->set_text(path);
 }
@@ -638,7 +638,7 @@ void FindInFilesPanel::set_with_replace(bool with_replace) {
 		// Results show checkboxes on their left so they can be opted out
 		_results_display->set_columns(2);
 		_results_display->set_column_expand(0, false);
-		_results_display->set_column_min_width(0, 48 * EDSCALE);
+		_results_display->set_column_custom_minimum_width(0, 48 * EDSCALE);
 
 	} else {
 		// Results are single-cell items
@@ -763,8 +763,10 @@ void FindInFilesPanel::draw_result_text(Object *item_obj, Rect2 rect) {
 	match_rect.position.y += 1 * EDSCALE;
 	match_rect.size.y -= 2 * EDSCALE;
 
-	_results_display->draw_rect(match_rect, Color(0, 0, 0, 0.5));
-	// Text is drawn by Tree already
+	// Use the inverted accent color to help match rectangles stand out even on the currently selected line.
+	_results_display->draw_rect(match_rect, get_theme_color("accent_color", "Editor").inverted() * Color(1, 1, 1, 0.5));
+
+	// Text is drawn by Tree already.
 }
 
 void FindInFilesPanel::_on_item_edited() {
@@ -838,7 +840,7 @@ void FindInFilesPanel::_on_replace_all_clicked() {
 		String fpath = file_item->get_metadata(0);
 
 		Vector<Result> locations;
-		for (TreeItem *item = file_item->get_children(); item; item = item->get_next()) {
+		for (TreeItem *item = file_item->get_first_child(); item; item = item->get_next()) {
 			if (!item->is_checked(0)) {
 				continue;
 			}
@@ -932,7 +934,7 @@ void FindInFilesPanel::apply_replaces_in_file(String fpath, const Vector<Result>
 			continue;
 		}
 
-		line = line.left(repl_begin) + new_text + line.right(repl_end);
+		line = line.left(repl_begin) + new_text + line.substr(repl_end);
 		// keep an offset in case there are successive replaces in the same line
 		offset += new_text.length() - (repl_end - repl_begin);
 	}

@@ -656,7 +656,9 @@ LocalizationEditor::LocalizationEditor() {
 		translations->add_child(tvb);
 
 		HBoxContainer *thb = memnew(HBoxContainer);
-		thb->add_child(memnew(Label(TTR("Translations:"))));
+		Label *l = memnew(Label(TTR("Translations:")));
+		l->set_theme_type_variation("HeaderSmall");
+		thb->add_child(l);
 		thb->add_spacer();
 		tvb->add_child(thb);
 
@@ -684,7 +686,9 @@ LocalizationEditor::LocalizationEditor() {
 		translations->add_child(tvb);
 
 		HBoxContainer *thb = memnew(HBoxContainer);
-		thb->add_child(memnew(Label(TTR("Resources:"))));
+		Label *l = memnew(Label(TTR("Resources:")));
+		l->set_theme_type_variation("HeaderSmall");
+		thb->add_child(l);
 		thb->add_spacer();
 		tvb->add_child(thb);
 
@@ -708,7 +712,9 @@ LocalizationEditor::LocalizationEditor() {
 		add_child(translation_res_file_open_dialog);
 
 		thb = memnew(HBoxContainer);
-		thb->add_child(memnew(Label(TTR("Remaps by Locale:"))));
+		l = memnew(Label(TTR("Remaps by Locale:")));
+		l->set_theme_type_variation("HeaderSmall");
+		thb->add_child(l);
 		thb->add_spacer();
 		tvb->add_child(thb);
 
@@ -728,8 +734,10 @@ LocalizationEditor::LocalizationEditor() {
 		translation_remap_options->set_column_title(1, TTR("Locale"));
 		translation_remap_options->set_column_titles_visible(true);
 		translation_remap_options->set_column_expand(0, true);
+		translation_remap_options->set_column_clip_content(0, true);
 		translation_remap_options->set_column_expand(1, false);
-		translation_remap_options->set_column_min_width(1, 200);
+		translation_remap_options->set_column_clip_content(1, true);
+		translation_remap_options->set_column_custom_minimum_width(1, 200);
 		translation_remap_options->connect("item_edited", callable_mp(this, &LocalizationEditor::_translation_res_option_changed));
 		translation_remap_options->connect("button_pressed", callable_mp(this, &LocalizationEditor::_translation_res_option_delete));
 		tmc->add_child(translation_remap_options);
@@ -756,7 +764,9 @@ LocalizationEditor::LocalizationEditor() {
 		translation_locale_filter_mode->connect("item_selected", callable_mp(this, &LocalizationEditor::_translation_filter_mode_changed));
 		tmc->add_margin_child(TTR("Filter mode:"), translation_locale_filter_mode);
 
-		tmc->add_child(memnew(Label(TTR("Locales:"))));
+		Label *l = memnew(Label(TTR("Locales:")));
+		l->set_theme_type_variation("HeaderSmall");
+		tmc->add_child(l);
 		translation_filter = memnew(Tree);
 		translation_filter->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 		translation_filter->set_columns(1);
@@ -770,7 +780,9 @@ LocalizationEditor::LocalizationEditor() {
 		translations->add_child(tvb);
 
 		HBoxContainer *thb = memnew(HBoxContainer);
-		thb->add_child(memnew(Label(TTR("Files with translation strings:"))));
+		Label *l = memnew(Label(TTR("Files with translation strings:")));
+		l->set_theme_type_variation("HeaderSmall");
+		thb->add_child(l);
 		thb->add_spacer();
 		tvb->add_child(thb);
 

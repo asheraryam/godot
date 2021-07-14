@@ -37,18 +37,26 @@
 struct Vector2i;
 
 struct Vector2 {
+	static const int AXIS_COUNT = 2;
+
 	enum Axis {
 		AXIS_X,
 		AXIS_Y,
 	};
 
 	union {
-		real_t x = 0;
-		real_t width;
-	};
-	union {
-		real_t y = 0;
-		real_t height;
+		struct {
+			union {
+				real_t x;
+				real_t width;
+			};
+			union {
+				real_t y;
+				real_t height;
+			};
+		};
+
+		real_t coord[2] = { 0 };
 	};
 
 	_FORCE_INLINE_ real_t &operator[](int p_idx) {
@@ -58,12 +66,25 @@ struct Vector2 {
 		return p_idx ? y : x;
 	}
 
+	_FORCE_INLINE_ void set_all(real_t p_value) {
+		x = y = p_value;
+	}
+
+	_FORCE_INLINE_ int min_axis() const {
+		return x < y ? 0 : 1;
+	}
+
+	_FORCE_INLINE_ int max_axis() const {
+		return x < y ? 1 : 0;
+	}
+
 	void normalize();
 	Vector2 normalized() const;
 	bool is_normalized() const;
 
 	real_t length() const;
 	real_t length_squared() const;
+	Vector2 limit_length(const real_t p_len = 1.0) const;
 
 	Vector2 min(const Vector2 &p_vector2) const {
 		return Vector2(MIN(x, p_vector2.x), MIN(y, p_vector2.y));
@@ -86,8 +107,6 @@ struct Vector2 {
 	Vector2 project(const Vector2 &p_to) const;
 
 	Vector2 plane_project(real_t p_d, const Vector2 &p_vec) const;
-
-	Vector2 clamped(real_t p_len) const;
 
 	_FORCE_INLINE_ Vector2 lerp(const Vector2 &p_to, real_t p_weight) const;
 	_FORCE_INLINE_ Vector2 slerp(const Vector2 &p_to, real_t p_weight) const;
@@ -143,9 +162,10 @@ struct Vector2 {
 	Vector2 ceil() const;
 	Vector2 round() const;
 	Vector2 snapped(const Vector2 &p_by) const;
+	Vector2 clamp(const Vector2 &p_min, const Vector2 &p_max) const;
 	real_t aspect() const { return width / height; }
 
-	operator String() const { return String::num(x) + ", " + String::num(y); }
+	operator String() const;
 
 	_FORCE_INLINE_ Vector2() {}
 	_FORCE_INLINE_ Vector2(real_t p_x, real_t p_y) {
@@ -280,6 +300,14 @@ struct Vector2i {
 		return p_idx ? y : x;
 	}
 
+	Vector2i min(const Vector2i &p_vector2i) const {
+		return Vector2(MIN(x, p_vector2i.x), MIN(y, p_vector2i.y));
+	}
+
+	Vector2i max(const Vector2i &p_vector2i) const {
+		return Vector2(MAX(x, p_vector2i.x), MAX(y, p_vector2i.y));
+	}
+
 	Vector2i operator+(const Vector2i &p_v) const;
 	void operator+=(const Vector2i &p_v);
 	Vector2i operator-(const Vector2i &p_v) const;
@@ -310,8 +338,9 @@ struct Vector2i {
 	real_t aspect() const { return width / (real_t)height; }
 	Vector2i sign() const { return Vector2i(SGN(x), SGN(y)); }
 	Vector2i abs() const { return Vector2i(ABS(x), ABS(y)); }
+	Vector2i clamp(const Vector2i &p_min, const Vector2i &p_max) const;
 
-	operator String() const { return String::num(x) + ", " + String::num(y); }
+	operator String() const;
 
 	operator Vector2() const { return Vector2(x, y); }
 

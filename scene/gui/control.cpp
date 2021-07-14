@@ -168,6 +168,12 @@ Size2 Control::_edit_get_minimum_size() const {
 }
 #endif
 
+void Control::accept_event() {
+	if (is_inside_tree()) {
+		get_viewport()->_gui_accept_event();
+	}
+}
+
 void Control::set_custom_minimum_size(const Size2 &p_custom) {
 	if (p_custom == data.custom_minimum_size) {
 		return;
@@ -333,85 +339,106 @@ bool Control::_get(const StringName &p_name, Variant &r_ret) const {
 
 void Control::_get_property_list(List<PropertyInfo> *p_list) const {
 	Ref<Theme> theme = Theme::get_default();
-	/* Using the default theme since the properties below are meant for editor only
-	if (data.theme.is_valid()) {
-		theme = data.theme;
-	} else {
-		theme = Theme::get_default();
-
-	}*/
 
 	{
 		List<StringName> names;
 		theme->get_icon_list(get_class_name(), &names);
 		for (List<StringName>::Element *E = names.front(); E; E = E->next()) {
-			uint32_t hint = PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_CHECKABLE;
+			uint32_t usage = PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_CHECKABLE;
 			if (data.icon_override.has(E->get())) {
-				hint |= PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_CHECKED;
+				usage |= PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_CHECKED;
 			}
 
-			p_list->push_back(PropertyInfo(Variant::OBJECT, "custom_icons/" + E->get(), PROPERTY_HINT_RESOURCE_TYPE, "Texture2D", hint));
+			p_list->push_back(PropertyInfo(Variant::OBJECT, "custom_icons/" + E->get(), PROPERTY_HINT_RESOURCE_TYPE, "Texture2D", usage));
 		}
 	}
 	{
 		List<StringName> names;
 		theme->get_stylebox_list(get_class_name(), &names);
 		for (List<StringName>::Element *E = names.front(); E; E = E->next()) {
-			uint32_t hint = PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_CHECKABLE;
+			uint32_t usage = PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_CHECKABLE;
 			if (data.style_override.has(E->get())) {
-				hint |= PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_CHECKED;
+				usage |= PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_CHECKED;
 			}
 
-			p_list->push_back(PropertyInfo(Variant::OBJECT, "custom_styles/" + E->get(), PROPERTY_HINT_RESOURCE_TYPE, "StyleBox", hint));
+			p_list->push_back(PropertyInfo(Variant::OBJECT, "custom_styles/" + E->get(), PROPERTY_HINT_RESOURCE_TYPE, "StyleBox", usage));
 		}
 	}
 	{
 		List<StringName> names;
 		theme->get_font_list(get_class_name(), &names);
 		for (List<StringName>::Element *E = names.front(); E; E = E->next()) {
-			uint32_t hint = PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_CHECKABLE;
+			uint32_t usage = PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_CHECKABLE;
 			if (data.font_override.has(E->get())) {
-				hint |= PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_CHECKED;
+				usage |= PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_CHECKED;
 			}
 
-			p_list->push_back(PropertyInfo(Variant::OBJECT, "custom_fonts/" + E->get(), PROPERTY_HINT_RESOURCE_TYPE, "Font", hint));
+			p_list->push_back(PropertyInfo(Variant::OBJECT, "custom_fonts/" + E->get(), PROPERTY_HINT_RESOURCE_TYPE, "Font", usage));
 		}
 	}
 	{
 		List<StringName> names;
 		theme->get_font_size_list(get_class_name(), &names);
 		for (List<StringName>::Element *E = names.front(); E; E = E->next()) {
-			uint32_t hint = PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_CHECKABLE;
+			uint32_t usage = PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_CHECKABLE;
 			if (data.font_size_override.has(E->get())) {
-				hint |= PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_CHECKED;
+				usage |= PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_CHECKED;
 			}
 
-			p_list->push_back(PropertyInfo(Variant::INT, "custom_font_sizes/" + E->get(), PROPERTY_HINT_NONE, "", hint));
+			p_list->push_back(PropertyInfo(Variant::INT, "custom_font_sizes/" + E->get(), PROPERTY_HINT_NONE, "", usage));
 		}
 	}
 	{
 		List<StringName> names;
 		theme->get_color_list(get_class_name(), &names);
 		for (List<StringName>::Element *E = names.front(); E; E = E->next()) {
-			uint32_t hint = PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_CHECKABLE;
+			uint32_t usage = PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_CHECKABLE;
 			if (data.color_override.has(E->get())) {
-				hint |= PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_CHECKED;
+				usage |= PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_CHECKED;
 			}
 
-			p_list->push_back(PropertyInfo(Variant::COLOR, "custom_colors/" + E->get(), PROPERTY_HINT_NONE, "", hint));
+			p_list->push_back(PropertyInfo(Variant::COLOR, "custom_colors/" + E->get(), PROPERTY_HINT_NONE, "", usage));
 		}
 	}
 	{
 		List<StringName> names;
 		theme->get_constant_list(get_class_name(), &names);
 		for (List<StringName>::Element *E = names.front(); E; E = E->next()) {
-			uint32_t hint = PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_CHECKABLE;
+			uint32_t usage = PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_CHECKABLE;
 			if (data.constant_override.has(E->get())) {
-				hint |= PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_CHECKED;
+				usage |= PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_CHECKED;
 			}
 
-			p_list->push_back(PropertyInfo(Variant::INT, "custom_constants/" + E->get(), PROPERTY_HINT_RANGE, "-16384,16384", hint));
+			p_list->push_back(PropertyInfo(Variant::INT, "custom_constants/" + E->get(), PROPERTY_HINT_RANGE, "-16384,16384", usage));
 		}
+	}
+}
+
+void Control::_validate_property(PropertyInfo &property) const {
+	if (property.name == "theme_type_variation") {
+		List<StringName> names;
+
+		// Only the default theme and the project theme are used for the list of options.
+		// This is an imposed limitation to simplify the logic needed to leverage those options.
+		Theme::get_default()->get_type_variation_list(get_class_name(), &names);
+		if (Theme::get_project_default().is_valid()) {
+			Theme::get_project_default()->get_type_variation_list(get_class_name(), &names);
+		}
+		names.sort_custom<StringName::AlphCompare>();
+
+		Vector<StringName> unique_names;
+		String hint_string;
+		for (List<StringName>::Element *E = names.front(); E; E = E->next()) {
+			// Skip duplicate values.
+			if (unique_names.has(E->get())) {
+				continue;
+			}
+
+			hint_string += String(E->get()) + ",";
+			unique_names.append(E->get());
+		}
+
+		property.hint_string = hint_string;
 	}
 }
 
@@ -509,7 +536,9 @@ void Control::_notification(int p_notification) {
 			get_viewport()->_gui_remove_control(this);
 		} break;
 		case NOTIFICATION_READY: {
+#ifdef DEBUG_ENABLED
 			connect("ready", callable_mp(this, &Control::_clear_size_warning), varray(), CONNECT_DEFERRED | CONNECT_ONESHOT);
+#endif
 		} break;
 
 		case NOTIFICATION_ENTER_CANVAS: {
@@ -642,27 +671,11 @@ void Control::_notification(int p_notification) {
 	}
 }
 
-bool Control::clips_input() const {
-	if (get_script_instance()) {
-		return get_script_instance()->call(SceneStringNames::get_singleton()->_clips_input);
-	}
-	return false;
-}
-
 bool Control::has_point(const Point2 &p_point) const {
-	if (get_script_instance()) {
-		Variant v = p_point;
-		const Variant *p = &v;
-		Callable::CallError ce;
-		Variant ret = get_script_instance()->call(SceneStringNames::get_singleton()->has_point, &p, 1, ce);
-		if (ce.error == Callable::CallError::CALL_OK) {
-			return ret;
-		}
+	bool ret;
+	if (GDVIRTUAL_CALL(_has_point, p_point, ret)) {
+		return ret;
 	}
-	/*if (has_stylebox("mask")) {
-		Ref<StyleBox> mask = get_stylebox("mask");
-		return mask->test_mask(p_point,Rect2(Point2(),get_size()));
-	}*/
 	return Rect2(Point2(), get_size()).has_point(p_point);
 }
 
@@ -679,7 +692,7 @@ Variant Control::get_drag_data(const Point2 &p_point) {
 		Object *obj = ObjectDB::get_instance(data.drag_owner);
 		if (obj) {
 			Control *c = Object::cast_to<Control>(obj);
-			return c->call("get_drag_data_fw", p_point, this);
+			return c->call("_get_drag_data_fw", p_point, this);
 		}
 	}
 
@@ -687,7 +700,7 @@ Variant Control::get_drag_data(const Point2 &p_point) {
 		Variant v = p_point;
 		const Variant *p = &v;
 		Callable::CallError ce;
-		Variant ret = get_script_instance()->call(SceneStringNames::get_singleton()->get_drag_data, &p, 1, ce);
+		Variant ret = get_script_instance()->call(SceneStringNames::get_singleton()->_get_drag_data, &p, 1, ce);
 		if (ce.error == Callable::CallError::CALL_OK) {
 			return ret;
 		}
@@ -701,7 +714,7 @@ bool Control::can_drop_data(const Point2 &p_point, const Variant &p_data) const 
 		Object *obj = ObjectDB::get_instance(data.drag_owner);
 		if (obj) {
 			Control *c = Object::cast_to<Control>(obj);
-			return c->call("can_drop_data_fw", p_point, p_data, this);
+			return c->call("_can_drop_data_fw", p_point, p_data, this);
 		}
 	}
 
@@ -709,7 +722,7 @@ bool Control::can_drop_data(const Point2 &p_point, const Variant &p_data) const 
 		Variant v = p_point;
 		const Variant *p[2] = { &v, &p_data };
 		Callable::CallError ce;
-		Variant ret = get_script_instance()->call(SceneStringNames::get_singleton()->can_drop_data, p, 2, ce);
+		Variant ret = get_script_instance()->call(SceneStringNames::get_singleton()->_can_drop_data, p, 2, ce);
 		if (ce.error == Callable::CallError::CALL_OK) {
 			return ret;
 		}
@@ -723,7 +736,7 @@ void Control::drop_data(const Point2 &p_point, const Variant &p_data) {
 		Object *obj = ObjectDB::get_instance(data.drag_owner);
 		if (obj) {
 			Control *c = Object::cast_to<Control>(obj);
-			c->call("drop_data_fw", p_point, p_data, this);
+			c->call("_drop_data_fw", p_point, p_data, this);
 			return;
 		}
 	}
@@ -732,7 +745,7 @@ void Control::drop_data(const Point2 &p_point, const Variant &p_data) {
 		Variant v = p_point;
 		const Variant *p[2] = { &v, &p_data };
 		Callable::CallError ce;
-		Variant ret = get_script_instance()->call(SceneStringNames::get_singleton()->drop_data, p, 2, ce);
+		Variant ret = get_script_instance()->call(SceneStringNames::get_singleton()->_drop_data, p, 2, ce);
 		if (ce.error == Callable::CallError::CALL_OK) {
 			return;
 		}
@@ -765,32 +778,27 @@ Size2 Control::get_minimum_size() const {
 }
 
 template <class T>
-bool Control::_find_theme_item(Control *p_theme_owner, Window *p_theme_owner_window, T &r_ret, T (Theme::*get_func)(const StringName &, const StringName &) const, bool (Theme::*has_func)(const StringName &, const StringName &) const, const StringName &p_name, const StringName &p_node_type) {
-	// try with custom themes
+T Control::get_theme_item_in_types(Control *p_theme_owner, Window *p_theme_owner_window, Theme::DataType p_data_type, const StringName &p_name, List<StringName> p_theme_types) {
+	ERR_FAIL_COND_V_MSG(p_theme_types.size() == 0, T(), "At least one theme type must be specified.");
+
+	// First, look through each control or window node in the branch, until no valid parent can be found.
+	// For each control iterate through its inheritance chain and see if p_name exists in any of them.
 	Control *theme_owner = p_theme_owner;
 	Window *theme_owner_window = p_theme_owner_window;
 
 	while (theme_owner || theme_owner_window) {
-		StringName class_name = p_node_type;
-
-		while (class_name != StringName()) {
-			if (theme_owner && (theme_owner->data.theme.operator->()->*has_func)(p_name, class_name)) {
-				r_ret = (theme_owner->data.theme.operator->()->*get_func)(p_name, class_name);
-				return true;
+		for (List<StringName>::Element *E = p_theme_types.front(); E; E = E->next()) {
+			if (theme_owner && theme_owner->data.theme->has_theme_item(p_data_type, p_name, E->get())) {
+				return theme_owner->data.theme->get_theme_item(p_data_type, p_name, E->get());
 			}
 
-			if (theme_owner_window && (theme_owner_window->theme.operator->()->*has_func)(p_name, class_name)) {
-				r_ret = (theme_owner_window->theme.operator->()->*get_func)(p_name, class_name);
-				return true;
+			if (theme_owner_window && theme_owner_window->theme->has_theme_item(p_data_type, p_name, E->get())) {
+				return theme_owner_window->theme->get_theme_item(p_data_type, p_name, E->get());
 			}
-
-			class_name = ClassDB::get_parent_class_nocheck(class_name);
 		}
 
 		Node *parent = theme_owner ? theme_owner->get_parent() : theme_owner_window->get_parent();
-
 		Control *parent_c = Object::cast_to<Control>(parent);
-
 		if (parent_c) {
 			theme_owner = parent_c->data.theme_owner;
 			theme_owner_window = parent_c->data.theme_owner_window;
@@ -805,33 +813,47 @@ bool Control::_find_theme_item(Control *p_theme_owner, Window *p_theme_owner_win
 			}
 		}
 	}
-	return false;
+
+	// Secondly, check the project-defined Theme resource.
+	if (Theme::get_project_default().is_valid()) {
+		for (List<StringName>::Element *E = p_theme_types.front(); E; E = E->next()) {
+			if (Theme::get_project_default()->has_theme_item(p_data_type, p_name, E->get())) {
+				return Theme::get_project_default()->get_theme_item(p_data_type, p_name, E->get());
+			}
+		}
+	}
+
+	// Lastly, fall back on the items defined in the default Theme, if they exist.
+	for (List<StringName>::Element *E = p_theme_types.front(); E; E = E->next()) {
+		if (Theme::get_default()->has_theme_item(p_data_type, p_name, E->get())) {
+			return Theme::get_default()->get_theme_item(p_data_type, p_name, E->get());
+		}
+	}
+	// If they don't exist, use any type to return the default/empty value.
+	return Theme::get_default()->get_theme_item(p_data_type, p_name, p_theme_types[0]);
 }
 
-bool Control::_has_theme_item(Control *p_theme_owner, Window *p_theme_owner_window, bool (Theme::*has_func)(const StringName &, const StringName &) const, const StringName &p_name, const StringName &p_node_type) {
-	// try with custom themes
+bool Control::has_theme_item_in_types(Control *p_theme_owner, Window *p_theme_owner_window, Theme::DataType p_data_type, const StringName &p_name, List<StringName> p_theme_types) {
+	ERR_FAIL_COND_V_MSG(p_theme_types.size() == 0, false, "At least one theme type must be specified.");
+
+	// First, look through each control or window node in the branch, until no valid parent can be found.
+	// For each control iterate through its inheritance chain and see if p_name exists in any of them.
 	Control *theme_owner = p_theme_owner;
 	Window *theme_owner_window = p_theme_owner_window;
 
 	while (theme_owner || theme_owner_window) {
-		StringName class_name = p_node_type;
-
-		while (class_name != StringName()) {
-			if (theme_owner && (theme_owner->data.theme.operator->()->*has_func)(p_name, class_name)) {
+		for (List<StringName>::Element *E = p_theme_types.front(); E; E = E->next()) {
+			if (theme_owner && theme_owner->data.theme->has_theme_item(p_data_type, p_name, E->get())) {
 				return true;
 			}
 
-			if (theme_owner_window && (theme_owner_window->theme.operator->()->*has_func)(p_name, class_name)) {
+			if (theme_owner_window && theme_owner_window->theme->has_theme_item(p_data_type, p_name, E->get())) {
 				return true;
 			}
-
-			class_name = ClassDB::get_parent_class_nocheck(class_name);
 		}
 
 		Node *parent = theme_owner ? theme_owner->get_parent() : theme_owner_window->get_parent();
-
 		Control *parent_c = Object::cast_to<Control>(parent);
-
 		if (parent_c) {
 			theme_owner = parent_c->data.theme_owner;
 			theme_owner_window = parent_c->data.theme_owner_window;
@@ -846,179 +868,113 @@ bool Control::_has_theme_item(Control *p_theme_owner, Window *p_theme_owner_wind
 			}
 		}
 	}
+
+	// Secondly, check the project-defined Theme resource.
+	if (Theme::get_project_default().is_valid()) {
+		for (List<StringName>::Element *E = p_theme_types.front(); E; E = E->next()) {
+			if (Theme::get_project_default()->has_theme_item(p_data_type, p_name, E->get())) {
+				return true;
+			}
+		}
+	}
+
+	// Lastly, fall back on the items defined in the default Theme, if they exist.
+	for (List<StringName>::Element *E = p_theme_types.front(); E; E = E->next()) {
+		if (Theme::get_default()->has_theme_item(p_data_type, p_name, E->get())) {
+			return true;
+		}
+	}
 	return false;
 }
 
-Ref<Texture2D> Control::get_theme_icon(const StringName &p_name, const StringName &p_node_type) const {
-	if (p_node_type == StringName() || p_node_type == get_class_name()) {
+void Control::_get_theme_type_dependencies(const StringName &p_theme_type, List<StringName> *p_list) const {
+	if (p_theme_type == StringName() || p_theme_type == get_class_name() || p_theme_type == data.theme_type_variation) {
+		if (Theme::get_project_default().is_valid() && Theme::get_project_default()->get_type_variation_base(data.theme_type_variation) != StringName()) {
+			Theme::get_project_default()->get_type_dependencies(get_class_name(), data.theme_type_variation, p_list);
+		} else {
+			Theme::get_default()->get_type_dependencies(get_class_name(), data.theme_type_variation, p_list);
+		}
+	} else {
+		Theme::get_default()->get_type_dependencies(p_theme_type, StringName(), p_list);
+	}
+}
+
+Ref<Texture2D> Control::get_theme_icon(const StringName &p_name, const StringName &p_theme_type) const {
+	if (p_theme_type == StringName() || p_theme_type == get_class_name() || p_theme_type == data.theme_type_variation) {
 		const Ref<Texture2D> *tex = data.icon_override.getptr(p_name);
 		if (tex) {
 			return *tex;
 		}
 	}
 
-	StringName type = p_node_type ? p_node_type : get_class_name();
-
-	return get_icons(data.theme_owner, data.theme_owner_window, p_name, type);
+	List<StringName> theme_types;
+	_get_theme_type_dependencies(p_theme_type, &theme_types);
+	return get_theme_item_in_types<Ref<Texture2D>>(data.theme_owner, data.theme_owner_window, Theme::DATA_TYPE_ICON, p_name, theme_types);
 }
 
-Ref<Texture2D> Control::get_icons(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type) {
-	Ref<Texture2D> icon;
-
-	if (_find_theme_item(p_theme_owner, p_theme_owner_window, icon, &Theme::get_icon, &Theme::has_icon, p_name, p_node_type)) {
-		return icon;
-	}
-
-	if (Theme::get_project_default().is_valid()) {
-		if (Theme::get_project_default()->has_icon(p_name, p_node_type)) {
-			return Theme::get_project_default()->get_icon(p_name, p_node_type);
-		}
-	}
-
-	return Theme::get_default()->get_icon(p_name, p_node_type);
-}
-
-Ref<StyleBox> Control::get_theme_stylebox(const StringName &p_name, const StringName &p_node_type) const {
-	if (p_node_type == StringName() || p_node_type == get_class_name()) {
+Ref<StyleBox> Control::get_theme_stylebox(const StringName &p_name, const StringName &p_theme_type) const {
+	if (p_theme_type == StringName() || p_theme_type == get_class_name() || p_theme_type == data.theme_type_variation) {
 		const Ref<StyleBox> *style = data.style_override.getptr(p_name);
 		if (style) {
 			return *style;
 		}
 	}
 
-	StringName type = p_node_type ? p_node_type : get_class_name();
-
-	return get_styleboxs(data.theme_owner, data.theme_owner_window, p_name, type);
+	List<StringName> theme_types;
+	_get_theme_type_dependencies(p_theme_type, &theme_types);
+	return get_theme_item_in_types<Ref<StyleBox>>(data.theme_owner, data.theme_owner_window, Theme::DATA_TYPE_STYLEBOX, p_name, theme_types);
 }
 
-Ref<StyleBox> Control::get_styleboxs(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type) {
-	Ref<StyleBox> stylebox;
-
-	if (_find_theme_item(p_theme_owner, p_theme_owner_window, stylebox, &Theme::get_stylebox, &Theme::has_stylebox, p_name, p_node_type)) {
-		return stylebox;
-	}
-
-	if (Theme::get_project_default().is_valid()) {
-		if (Theme::get_project_default()->has_stylebox(p_name, p_node_type)) {
-			return Theme::get_project_default()->get_stylebox(p_name, p_node_type);
-		}
-	}
-
-	return Theme::get_default()->get_stylebox(p_name, p_node_type);
-}
-
-Ref<Font> Control::get_theme_font(const StringName &p_name, const StringName &p_node_type) const {
-	if (p_node_type == StringName() || p_node_type == get_class_name()) {
+Ref<Font> Control::get_theme_font(const StringName &p_name, const StringName &p_theme_type) const {
+	if (p_theme_type == StringName() || p_theme_type == get_class_name() || p_theme_type == data.theme_type_variation) {
 		const Ref<Font> *font = data.font_override.getptr(p_name);
 		if (font) {
 			return *font;
 		}
 	}
 
-	StringName type = p_node_type ? p_node_type : get_class_name();
-
-	return get_fonts(data.theme_owner, data.theme_owner_window, p_name, type);
+	List<StringName> theme_types;
+	_get_theme_type_dependencies(p_theme_type, &theme_types);
+	return get_theme_item_in_types<Ref<Font>>(data.theme_owner, data.theme_owner_window, Theme::DATA_TYPE_FONT, p_name, theme_types);
 }
 
-int Control::get_theme_font_size(const StringName &p_name, const StringName &p_node_type) const {
-	if (p_node_type == StringName() || p_node_type == get_class_name()) {
+int Control::get_theme_font_size(const StringName &p_name, const StringName &p_theme_type) const {
+	if (p_theme_type == StringName() || p_theme_type == get_class_name() || p_theme_type == data.theme_type_variation) {
 		const int *font_size = data.font_size_override.getptr(p_name);
 		if (font_size) {
 			return *font_size;
 		}
 	}
 
-	StringName type = p_node_type ? p_node_type : get_class_name();
-
-	return get_font_sizes(data.theme_owner, data.theme_owner_window, p_name, type);
+	List<StringName> theme_types;
+	_get_theme_type_dependencies(p_theme_type, &theme_types);
+	return get_theme_item_in_types<int>(data.theme_owner, data.theme_owner_window, Theme::DATA_TYPE_FONT_SIZE, p_name, theme_types);
 }
 
-Ref<Font> Control::get_fonts(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type) {
-	Ref<Font> font;
-
-	if (_find_theme_item(p_theme_owner, p_theme_owner_window, font, &Theme::get_font, &Theme::has_font, p_name, p_node_type)) {
-		return font;
-	}
-
-	if (Theme::get_project_default().is_valid()) {
-		if (Theme::get_project_default()->has_font(p_name, p_node_type)) {
-			return Theme::get_project_default()->get_font(p_name, p_node_type);
-		}
-	}
-
-	return Theme::get_default()->get_font(p_name, p_node_type);
-}
-
-int Control::get_font_sizes(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type) {
-	int font_size;
-
-	if (_find_theme_item(p_theme_owner, p_theme_owner_window, font_size, &Theme::get_font_size, &Theme::has_font_size, p_name, p_node_type)) {
-		return font_size;
-	}
-
-	if (Theme::get_project_default().is_valid()) {
-		if (Theme::get_project_default()->has_font_size(p_name, p_node_type)) {
-			return Theme::get_project_default()->get_font_size(p_name, p_node_type);
-		}
-	}
-
-	return Theme::get_default()->get_font_size(p_name, p_node_type);
-}
-
-Color Control::get_theme_color(const StringName &p_name, const StringName &p_node_type) const {
-	if (p_node_type == StringName() || p_node_type == get_class_name()) {
+Color Control::get_theme_color(const StringName &p_name, const StringName &p_theme_type) const {
+	if (p_theme_type == StringName() || p_theme_type == get_class_name() || p_theme_type == data.theme_type_variation) {
 		const Color *color = data.color_override.getptr(p_name);
 		if (color) {
 			return *color;
 		}
 	}
 
-	StringName type = p_node_type ? p_node_type : get_class_name();
-
-	return get_colors(data.theme_owner, data.theme_owner_window, p_name, type);
+	List<StringName> theme_types;
+	_get_theme_type_dependencies(p_theme_type, &theme_types);
+	return get_theme_item_in_types<Color>(data.theme_owner, data.theme_owner_window, Theme::DATA_TYPE_COLOR, p_name, theme_types);
 }
 
-Color Control::get_colors(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type) {
-	Color color;
-
-	if (_find_theme_item(p_theme_owner, p_theme_owner_window, color, &Theme::get_color, &Theme::has_color, p_name, p_node_type)) {
-		return color;
-	}
-
-	if (Theme::get_project_default().is_valid()) {
-		if (Theme::get_project_default()->has_color(p_name, p_node_type)) {
-			return Theme::get_project_default()->get_color(p_name, p_node_type);
-		}
-	}
-	return Theme::get_default()->get_color(p_name, p_node_type);
-}
-
-int Control::get_theme_constant(const StringName &p_name, const StringName &p_node_type) const {
-	if (p_node_type == StringName() || p_node_type == get_class_name()) {
+int Control::get_theme_constant(const StringName &p_name, const StringName &p_theme_type) const {
+	if (p_theme_type == StringName() || p_theme_type == get_class_name() || p_theme_type == data.theme_type_variation) {
 		const int *constant = data.constant_override.getptr(p_name);
 		if (constant) {
 			return *constant;
 		}
 	}
 
-	StringName type = p_node_type ? p_node_type : get_class_name();
-
-	return get_constants(data.theme_owner, data.theme_owner_window, p_name, type);
-}
-
-int Control::get_constants(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type) {
-	int constant;
-
-	if (_find_theme_item(p_theme_owner, p_theme_owner_window, constant, &Theme::get_constant, &Theme::has_constant, p_name, p_node_type)) {
-		return constant;
-	}
-
-	if (Theme::get_project_default().is_valid()) {
-		if (Theme::get_project_default()->has_constant(p_name, p_node_type)) {
-			return Theme::get_project_default()->get_constant(p_name, p_node_type);
-		}
-	}
-	return Theme::get_default()->get_constant(p_name, p_node_type);
+	List<StringName> theme_types;
+	_get_theme_type_dependencies(p_theme_type, &theme_types);
+	return get_theme_item_in_types<int>(data.theme_owner, data.theme_owner_window, Theme::DATA_TYPE_CONSTANT, p_name, theme_types);
 }
 
 bool Control::has_theme_icon_override(const StringName &p_name) const {
@@ -1051,154 +1007,76 @@ bool Control::has_theme_constant_override(const StringName &p_name) const {
 	return constant != nullptr;
 }
 
-bool Control::has_theme_icon(const StringName &p_name, const StringName &p_node_type) const {
-	if (p_node_type == StringName() || p_node_type == get_class_name()) {
+bool Control::has_theme_icon(const StringName &p_name, const StringName &p_theme_type) const {
+	if (p_theme_type == StringName() || p_theme_type == get_class_name() || p_theme_type == data.theme_type_variation) {
 		if (has_theme_icon_override(p_name)) {
 			return true;
 		}
 	}
 
-	StringName type = p_node_type ? p_node_type : get_class_name();
-
-	return has_icons(data.theme_owner, data.theme_owner_window, p_name, type);
+	List<StringName> theme_types;
+	_get_theme_type_dependencies(p_theme_type, &theme_types);
+	return has_theme_item_in_types(data.theme_owner, data.theme_owner_window, Theme::DATA_TYPE_ICON, p_name, theme_types);
 }
 
-bool Control::has_icons(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type) {
-	if (_has_theme_item(p_theme_owner, p_theme_owner_window, &Theme::has_icon, p_name, p_node_type)) {
-		return true;
-	}
-
-	if (Theme::get_project_default().is_valid()) {
-		if (Theme::get_project_default()->has_color(p_name, p_node_type)) {
-			return true;
-		}
-	}
-	return Theme::get_default()->has_icon(p_name, p_node_type);
-}
-
-bool Control::has_theme_stylebox(const StringName &p_name, const StringName &p_node_type) const {
-	if (p_node_type == StringName() || p_node_type == get_class_name()) {
+bool Control::has_theme_stylebox(const StringName &p_name, const StringName &p_theme_type) const {
+	if (p_theme_type == StringName() || p_theme_type == get_class_name() || p_theme_type == data.theme_type_variation) {
 		if (has_theme_stylebox_override(p_name)) {
 			return true;
 		}
 	}
 
-	StringName type = p_node_type ? p_node_type : get_class_name();
-
-	return has_styleboxs(data.theme_owner, data.theme_owner_window, p_name, type);
+	List<StringName> theme_types;
+	_get_theme_type_dependencies(p_theme_type, &theme_types);
+	return has_theme_item_in_types(data.theme_owner, data.theme_owner_window, Theme::DATA_TYPE_STYLEBOX, p_name, theme_types);
 }
 
-bool Control::has_styleboxs(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type) {
-	if (_has_theme_item(p_theme_owner, p_theme_owner_window, &Theme::has_stylebox, p_name, p_node_type)) {
-		return true;
-	}
-
-	if (Theme::get_project_default().is_valid()) {
-		if (Theme::get_project_default()->has_stylebox(p_name, p_node_type)) {
-			return true;
-		}
-	}
-	return Theme::get_default()->has_stylebox(p_name, p_node_type);
-}
-
-bool Control::has_theme_font(const StringName &p_name, const StringName &p_node_type) const {
-	if (p_node_type == StringName() || p_node_type == get_class_name()) {
+bool Control::has_theme_font(const StringName &p_name, const StringName &p_theme_type) const {
+	if (p_theme_type == StringName() || p_theme_type == get_class_name() || p_theme_type == data.theme_type_variation) {
 		if (has_theme_font_override(p_name)) {
 			return true;
 		}
 	}
 
-	StringName type = p_node_type ? p_node_type : get_class_name();
-
-	return has_fonts(data.theme_owner, data.theme_owner_window, p_name, type);
+	List<StringName> theme_types;
+	_get_theme_type_dependencies(p_theme_type, &theme_types);
+	return has_theme_item_in_types(data.theme_owner, data.theme_owner_window, Theme::DATA_TYPE_FONT, p_name, theme_types);
 }
 
-bool Control::has_fonts(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type) {
-	if (_has_theme_item(p_theme_owner, p_theme_owner_window, &Theme::has_font, p_name, p_node_type)) {
-		return true;
-	}
-
-	if (Theme::get_project_default().is_valid()) {
-		if (Theme::get_project_default()->has_font(p_name, p_node_type)) {
-			return true;
-		}
-	}
-	return Theme::get_default()->has_font(p_name, p_node_type);
-}
-
-bool Control::has_theme_font_size(const StringName &p_name, const StringName &p_node_type) const {
-	if (p_node_type == StringName() || p_node_type == get_class_name()) {
+bool Control::has_theme_font_size(const StringName &p_name, const StringName &p_theme_type) const {
+	if (p_theme_type == StringName() || p_theme_type == get_class_name() || p_theme_type == data.theme_type_variation) {
 		if (has_theme_font_size_override(p_name)) {
 			return true;
 		}
 	}
 
-	StringName type = p_node_type ? p_node_type : get_class_name();
-
-	return has_font_sizes(data.theme_owner, data.theme_owner_window, p_name, type);
+	List<StringName> theme_types;
+	_get_theme_type_dependencies(p_theme_type, &theme_types);
+	return has_theme_item_in_types(data.theme_owner, data.theme_owner_window, Theme::DATA_TYPE_FONT_SIZE, p_name, theme_types);
 }
 
-bool Control::has_font_sizes(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type) {
-	if (_has_theme_item(p_theme_owner, p_theme_owner_window, &Theme::has_font_size, p_name, p_node_type)) {
-		return true;
-	}
-
-	if (Theme::get_project_default().is_valid()) {
-		if (Theme::get_project_default()->has_font_size(p_name, p_node_type)) {
-			return true;
-		}
-	}
-	return Theme::get_default()->has_font_size(p_name, p_node_type);
-}
-
-bool Control::has_theme_color(const StringName &p_name, const StringName &p_node_type) const {
-	if (p_node_type == StringName() || p_node_type == get_class_name()) {
+bool Control::has_theme_color(const StringName &p_name, const StringName &p_theme_type) const {
+	if (p_theme_type == StringName() || p_theme_type == get_class_name() || p_theme_type == data.theme_type_variation) {
 		if (has_theme_color_override(p_name)) {
 			return true;
 		}
 	}
 
-	StringName type = p_node_type ? p_node_type : get_class_name();
-
-	return has_colors(data.theme_owner, data.theme_owner_window, p_name, type);
+	List<StringName> theme_types;
+	_get_theme_type_dependencies(p_theme_type, &theme_types);
+	return has_theme_item_in_types(data.theme_owner, data.theme_owner_window, Theme::DATA_TYPE_COLOR, p_name, theme_types);
 }
 
-bool Control::has_colors(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type) {
-	if (_has_theme_item(p_theme_owner, p_theme_owner_window, &Theme::has_color, p_name, p_node_type)) {
-		return true;
-	}
-
-	if (Theme::get_project_default().is_valid()) {
-		if (Theme::get_project_default()->has_color(p_name, p_node_type)) {
-			return true;
-		}
-	}
-	return Theme::get_default()->has_color(p_name, p_node_type);
-}
-
-bool Control::has_theme_constant(const StringName &p_name, const StringName &p_node_type) const {
-	if (p_node_type == StringName() || p_node_type == get_class_name()) {
+bool Control::has_theme_constant(const StringName &p_name, const StringName &p_theme_type) const {
+	if (p_theme_type == StringName() || p_theme_type == get_class_name() || p_theme_type == data.theme_type_variation) {
 		if (has_theme_constant_override(p_name)) {
 			return true;
 		}
 	}
 
-	StringName type = p_node_type ? p_node_type : get_class_name();
-
-	return has_constants(data.theme_owner, data.theme_owner_window, p_name, p_node_type);
-}
-
-bool Control::has_constants(Control *p_theme_owner, Window *p_theme_owner_window, const StringName &p_name, const StringName &p_node_type) {
-	if (_has_theme_item(p_theme_owner, p_theme_owner_window, &Theme::has_constant, p_name, p_node_type)) {
-		return true;
-	}
-
-	if (Theme::get_project_default().is_valid()) {
-		if (Theme::get_project_default()->has_constant(p_name, p_node_type)) {
-			return true;
-		}
-	}
-	return Theme::get_default()->has_constant(p_name, p_node_type);
+	List<StringName> theme_types;
+	_get_theme_type_dependencies(p_theme_type, &theme_types);
+	return has_theme_item_in_types(data.theme_owner, data.theme_owner_window, Theme::DATA_TYPE_CONSTANT, p_name, theme_types);
 }
 
 Rect2 Control::get_parent_anchorable_rect() const {
@@ -1212,7 +1090,7 @@ Rect2 Control::get_parent_anchorable_rect() const {
 	} else {
 #ifdef TOOLS_ENABLED
 		Node *edited_root = get_tree()->get_edited_scene_root();
-		if (edited_root && (this == edited_root || edited_root->is_a_parent_of(this))) {
+		if (edited_root && (this == edited_root || edited_root->is_ancestor_of(this))) {
 			parent_rect.size = Size2(ProjectSettings::get_singleton()->get("display/window/size/width"), ProjectSettings::get_singleton()->get("display/window/size/height"));
 		} else {
 			parent_rect = get_viewport()->get_visible_rect();
@@ -1632,7 +1510,7 @@ Point2 Control::get_global_position() const {
 
 Point2 Control::get_screen_position() const {
 	ERR_FAIL_COND_V(!is_inside_tree(), Point2());
-	Point2 global_pos = get_global_position();
+	Point2 global_pos = get_viewport()->get_canvas_transform().xform(get_global_position());
 	Window *w = Object::cast_to<Window>(get_viewport());
 	if (w && !w->is_embedding_subwindows()) {
 		global_pos += w->get_position();
@@ -1709,8 +1587,8 @@ void Control::set_rect(const Rect2 &p_rect) {
 
 void Control::_set_size(const Size2 &p_size) {
 #ifdef DEBUG_ENABLED
-	if (data.size_warning) {
-		WARN_PRINT("Adjusting the size of Control nodes before they are fully initialized is unreliable. Consider deferring it with set_deferred().");
+	if (data.size_warning && (data.anchor[SIDE_LEFT] != data.anchor[SIDE_RIGHT] || data.anchor[SIDE_TOP] != data.anchor[SIDE_BOTTOM])) {
+		WARN_PRINT("Nodes with non-equal opposite anchors will have their size overriden after _ready(). \nIf you want to set size, change the anchors or consider using set_deferred().");
 	}
 #endif
 	set_size(p_size);
@@ -2171,14 +2049,17 @@ void Control::set_theme(const Ref<Theme> &p_theme) {
 	}
 }
 
-void Control::accept_event() {
-	if (is_inside_tree()) {
-		get_viewport()->_gui_accept_event();
-	}
-}
-
 Ref<Theme> Control::get_theme() const {
 	return data.theme;
+}
+
+void Control::set_theme_type_variation(const StringName &p_theme_type) {
+	data.theme_type_variation = p_theme_type;
+	_propagate_theme_changed(this, data.theme_owner, data.theme_owner_window);
+}
+
+StringName Control::get_theme_type_variation() const {
+	return data.theme_type_variation;
 }
 
 void Control::set_tooltip(const String &p_tooltip) {
@@ -2499,9 +2380,9 @@ bool Control::is_text_field() const {
 	return false;
 }
 
-Vector<Vector2i> Control::structured_text_parser(StructuredTextParser p_node_type, const Array &p_args, const String p_text) const {
+Vector<Vector2i> Control::structured_text_parser(StructuredTextParser p_theme_type, const Array &p_args, const String p_text) const {
 	Vector<Vector2i> ret;
-	switch (p_node_type) {
+	switch (p_theme_type) {
 		case STRUCTURED_TEXT_URI: {
 			int prev = 0;
 			for (int i = 0; i < p_text.length(); i++) {
@@ -2598,14 +2479,6 @@ real_t Control::get_rotation() const {
 	return data.rotation;
 }
 
-void Control::set_rotation_degrees(real_t p_degrees) {
-	set_rotation(Math::deg2rad(p_degrees));
-}
-
-real_t Control::get_rotation_degrees() const {
-	return Math::rad2deg(get_rotation());
-}
-
 void Control::_override_changed() {
 	notification(NOTIFICATION_THEME_CHANGED);
 	emit_signal(SceneStringNames::get_singleton()->theme_changed);
@@ -2688,15 +2561,15 @@ void Control::get_argument_options(const StringName &p_function, int p_idx, List
 	if (p_idx == 0) {
 		List<StringName> sn;
 		String pf = p_function;
-		if (pf == "add_color_override" || pf == "has_color" || pf == "has_color_override" || pf == "get_color") {
+		if (pf == "add_theme_color_override" || pf == "has_theme_color" || pf == "has_theme_color_override" || pf == "get_theme_color") {
 			Theme::get_default()->get_color_list(get_class(), &sn);
-		} else if (pf == "add_style_override" || pf == "has_style" || pf == "has_style_override" || pf == "get_style") {
+		} else if (pf == "add_theme_style_override" || pf == "has_theme_style" || pf == "has_theme_style_override" || pf == "get_theme_style") {
 			Theme::get_default()->get_stylebox_list(get_class(), &sn);
-		} else if (pf == "add_font_override" || pf == "has_font" || pf == "has_font_override" || pf == "get_font") {
+		} else if (pf == "add_theme_font_override" || pf == "has_theme_font" || pf == "has_theme_font_override" || pf == "get_theme_font") {
 			Theme::get_default()->get_font_list(get_class(), &sn);
-		} else if (pf == "add_font_size_override" || pf == "has_font_size" || pf == "has_font_size_override" || pf == "get_font_size") {
+		} else if (pf == "add_theme_font_size_override" || pf == "has_theme_font_size" || pf == "has_theme_font_size_override" || pf == "get_theme_font_size") {
 			Theme::get_default()->get_font_size_list(get_class(), &sn);
-		} else if (pf == "add_constant_override" || pf == "has_constant" || pf == "has_constant_override" || pf == "get_constant") {
+		} else if (pf == "add_theme_constant_override" || pf == "has_theme_constant" || pf == "has_theme_constant_override" || pf == "get_theme_constant") {
 			Theme::get_default()->get_constant_list(get_class(), &sn);
 		}
 
@@ -2773,7 +2646,6 @@ void Control::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_global_position", "position", "keep_offsets"), &Control::set_global_position, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("_set_global_position", "position"), &Control::_set_global_position);
 	ClassDB::bind_method(D_METHOD("set_rotation", "radians"), &Control::set_rotation);
-	ClassDB::bind_method(D_METHOD("set_rotation_degrees", "degrees"), &Control::set_rotation_degrees);
 	ClassDB::bind_method(D_METHOD("set_scale", "scale"), &Control::set_scale);
 	ClassDB::bind_method(D_METHOD("set_pivot_offset", "pivot_offset"), &Control::set_pivot_offset);
 	ClassDB::bind_method(D_METHOD("get_offset", "offset"), &Control::get_offset);
@@ -2782,7 +2654,6 @@ void Control::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_position"), &Control::get_position);
 	ClassDB::bind_method(D_METHOD("get_size"), &Control::get_size);
 	ClassDB::bind_method(D_METHOD("get_rotation"), &Control::get_rotation);
-	ClassDB::bind_method(D_METHOD("get_rotation_degrees"), &Control::get_rotation_degrees);
 	ClassDB::bind_method(D_METHOD("get_scale"), &Control::get_scale);
 	ClassDB::bind_method(D_METHOD("get_pivot_offset"), &Control::get_pivot_offset);
 	ClassDB::bind_method(D_METHOD("get_custom_minimum_size"), &Control::get_custom_minimum_size);
@@ -2811,6 +2682,9 @@ void Control::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_theme", "theme"), &Control::set_theme);
 	ClassDB::bind_method(D_METHOD("get_theme"), &Control::get_theme);
 
+	ClassDB::bind_method(D_METHOD("set_theme_type_variation", "theme_type"), &Control::set_theme_type_variation);
+	ClassDB::bind_method(D_METHOD("get_theme_type_variation"), &Control::get_theme_type_variation);
+
 	ClassDB::bind_method(D_METHOD("add_theme_icon_override", "name", "texture"), &Control::add_theme_icon_override);
 	ClassDB::bind_method(D_METHOD("add_theme_stylebox_override", "name", "stylebox"), &Control::add_theme_style_override);
 	ClassDB::bind_method(D_METHOD("add_theme_font_override", "name", "font"), &Control::add_theme_font_override);
@@ -2825,12 +2699,12 @@ void Control::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("remove_theme_color_override", "name"), &Control::remove_theme_color_override);
 	ClassDB::bind_method(D_METHOD("remove_theme_constant_override", "name"), &Control::remove_theme_constant_override);
 
-	ClassDB::bind_method(D_METHOD("get_theme_icon", "name", "node_type"), &Control::get_theme_icon, DEFVAL(""));
-	ClassDB::bind_method(D_METHOD("get_theme_stylebox", "name", "node_type"), &Control::get_theme_stylebox, DEFVAL(""));
-	ClassDB::bind_method(D_METHOD("get_theme_font", "name", "node_type"), &Control::get_theme_font, DEFVAL(""));
-	ClassDB::bind_method(D_METHOD("get_theme_font_size", "name", "node_type"), &Control::get_theme_font_size, DEFVAL(""));
-	ClassDB::bind_method(D_METHOD("get_theme_color", "name", "node_type"), &Control::get_theme_color, DEFVAL(""));
-	ClassDB::bind_method(D_METHOD("get_theme_constant", "name", "node_type"), &Control::get_theme_constant, DEFVAL(""));
+	ClassDB::bind_method(D_METHOD("get_theme_icon", "name", "theme_type"), &Control::get_theme_icon, DEFVAL(""));
+	ClassDB::bind_method(D_METHOD("get_theme_stylebox", "name", "theme_type"), &Control::get_theme_stylebox, DEFVAL(""));
+	ClassDB::bind_method(D_METHOD("get_theme_font", "name", "theme_type"), &Control::get_theme_font, DEFVAL(""));
+	ClassDB::bind_method(D_METHOD("get_theme_font_size", "name", "theme_type"), &Control::get_theme_font_size, DEFVAL(""));
+	ClassDB::bind_method(D_METHOD("get_theme_color", "name", "theme_type"), &Control::get_theme_color, DEFVAL(""));
+	ClassDB::bind_method(D_METHOD("get_theme_constant", "name", "theme_type"), &Control::get_theme_constant, DEFVAL(""));
 
 	ClassDB::bind_method(D_METHOD("has_theme_icon_override", "name"), &Control::has_theme_icon_override);
 	ClassDB::bind_method(D_METHOD("has_theme_stylebox_override", "name"), &Control::has_theme_stylebox_override);
@@ -2839,12 +2713,12 @@ void Control::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("has_theme_color_override", "name"), &Control::has_theme_color_override);
 	ClassDB::bind_method(D_METHOD("has_theme_constant_override", "name"), &Control::has_theme_constant_override);
 
-	ClassDB::bind_method(D_METHOD("has_theme_icon", "name", "node_type"), &Control::has_theme_icon, DEFVAL(""));
-	ClassDB::bind_method(D_METHOD("has_theme_stylebox", "name", "node_type"), &Control::has_theme_stylebox, DEFVAL(""));
-	ClassDB::bind_method(D_METHOD("has_theme_font", "name", "node_type"), &Control::has_theme_font, DEFVAL(""));
-	ClassDB::bind_method(D_METHOD("has_theme_font_size", "name", "node_type"), &Control::has_theme_font_size, DEFVAL(""));
-	ClassDB::bind_method(D_METHOD("has_theme_color", "name", "node_type"), &Control::has_theme_color, DEFVAL(""));
-	ClassDB::bind_method(D_METHOD("has_theme_constant", "name", "node_type"), &Control::has_theme_constant, DEFVAL(""));
+	ClassDB::bind_method(D_METHOD("has_theme_icon", "name", "theme_type"), &Control::has_theme_icon, DEFVAL(""));
+	ClassDB::bind_method(D_METHOD("has_theme_stylebox", "name", "theme_type"), &Control::has_theme_stylebox, DEFVAL(""));
+	ClassDB::bind_method(D_METHOD("has_theme_font", "name", "theme_type"), &Control::has_theme_font, DEFVAL(""));
+	ClassDB::bind_method(D_METHOD("has_theme_font_size", "name", "theme_type"), &Control::has_theme_font_size, DEFVAL(""));
+	ClassDB::bind_method(D_METHOD("has_theme_color", "name", "theme_type"), &Control::has_theme_color, DEFVAL(""));
+	ClassDB::bind_method(D_METHOD("has_theme_constant", "name", "theme_type"), &Control::has_theme_constant, DEFVAL(""));
 
 	ClassDB::bind_method(D_METHOD("get_parent_control"), &Control::get_parent_control);
 
@@ -2897,16 +2771,15 @@ void Control::_bind_methods() {
 	BIND_VMETHOD(MethodInfo("_gui_input", PropertyInfo(Variant::OBJECT, "event", PROPERTY_HINT_RESOURCE_TYPE, "InputEvent")));
 	BIND_VMETHOD(MethodInfo(Variant::VECTOR2, "_get_minimum_size"));
 
-	MethodInfo get_drag_data = MethodInfo("get_drag_data", PropertyInfo(Variant::VECTOR2, "position"));
+	MethodInfo get_drag_data = MethodInfo("_get_drag_data", PropertyInfo(Variant::VECTOR2, "position"));
 	get_drag_data.return_val.usage |= PROPERTY_USAGE_NIL_IS_VARIANT;
 	BIND_VMETHOD(get_drag_data);
 
-	BIND_VMETHOD(MethodInfo(Variant::BOOL, "can_drop_data", PropertyInfo(Variant::VECTOR2, "position"), PropertyInfo(Variant::NIL, "data")));
-	BIND_VMETHOD(MethodInfo("drop_data", PropertyInfo(Variant::VECTOR2, "position"), PropertyInfo(Variant::NIL, "data")));
+	BIND_VMETHOD(MethodInfo(Variant::BOOL, "_can_drop_data", PropertyInfo(Variant::VECTOR2, "position"), PropertyInfo(Variant::NIL, "data")));
+	BIND_VMETHOD(MethodInfo("_drop_data", PropertyInfo(Variant::VECTOR2, "position"), PropertyInfo(Variant::NIL, "data")));
 	BIND_VMETHOD(MethodInfo(
 			PropertyInfo(Variant::OBJECT, "control", PROPERTY_HINT_RESOURCE_TYPE, "Control"),
 			"_make_custom_tooltip", PropertyInfo(Variant::STRING, "for_text")));
-	BIND_VMETHOD(MethodInfo(Variant::BOOL, "_clips_input"));
 
 	ADD_GROUP("Anchor", "anchor_");
 	ADD_PROPERTYI(PropertyInfo(Variant::FLOAT, "anchor_left", PROPERTY_HINT_RANGE, "0,1,0.001,or_lesser,or_greater"), "_set_anchor", "get_anchor", SIDE_LEFT);
@@ -2925,15 +2798,14 @@ void Control::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "grow_vertical", PROPERTY_HINT_ENUM, "Begin,End,Both"), "set_v_grow_direction", "get_v_grow_direction");
 
 	ADD_GROUP("Layout Direction", "layout_");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "layout_direction", PROPERTY_HINT_ENUM, "Inherited,Locale,Left-to-right,Right-to-left"), "set_layout_direction", "get_layout_direction");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "layout_direction", PROPERTY_HINT_ENUM, "Inherited,Locale,Left-to-Right,Right-to-Left"), "set_layout_direction", "get_layout_direction");
 
 	ADD_GROUP("Rect", "rect_");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "rect_position", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "_set_position", "get_position");
-	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "rect_global_position", PROPERTY_HINT_NONE, "", 0), "_set_global_position", "get_global_position");
+	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "rect_global_position", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NONE), "_set_global_position", "get_global_position");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "rect_size", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "_set_size", "get_size");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "rect_min_size"), "set_custom_minimum_size", "get_custom_minimum_size");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "rect_rotation", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR), "set_rotation", "get_rotation");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "rect_rotation_degrees", PROPERTY_HINT_RANGE, "-360,360,0.1,or_lesser,or_greater"), "set_rotation_degrees", "get_rotation_degrees");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "rect_rotation", PROPERTY_HINT_RANGE, "-360,360,0.1,or_lesser,or_greater,radians"), "set_rotation", "get_rotation");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "rect_scale"), "set_scale", "get_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "rect_pivot_offset"), "set_pivot_offset", "get_pivot_offset");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "rect_clip_content"), "set_clip_contents", "is_clipping_contents");
@@ -2952,14 +2824,15 @@ void Control::_bind_methods() {
 
 	ADD_GROUP("Mouse", "mouse_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mouse_filter", PROPERTY_HINT_ENUM, "Stop,Pass,Ignore"), "set_mouse_filter", "get_mouse_filter");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "mouse_default_cursor_shape", PROPERTY_HINT_ENUM, "Arrow,Ibeam,Pointing hand,Cross,Wait,Busy,Drag,Can drop,Forbidden,Vertical resize,Horizontal resize,Secondary diagonal resize,Main diagonal resize,Move,Vertical split,Horizontal split,Help"), "set_default_cursor_shape", "get_default_cursor_shape");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "mouse_default_cursor_shape", PROPERTY_HINT_ENUM, "Arrow,I-Beam,Pointing Hand,Cross,Wait,Busy,Drag,Can Drop,Forbidden,Vertical Resize,Horizontal Resize,Secondary Diagonal Resize,Main Diagonal Resize,Move,Vertical Split,Horizontal Split,Help"), "set_default_cursor_shape", "get_default_cursor_shape");
 
 	ADD_GROUP("Size Flags", "size_flags_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "size_flags_horizontal", PROPERTY_HINT_FLAGS, "Fill,Expand,Shrink Center,Shrink End"), "set_h_size_flags", "get_h_size_flags");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "size_flags_vertical", PROPERTY_HINT_FLAGS, "Fill,Expand,Shrink Center,Shrink End"), "set_v_size_flags", "get_v_size_flags");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "size_flags_stretch_ratio", PROPERTY_HINT_RANGE, "0,20,0.01,or_greater"), "set_stretch_ratio", "get_stretch_ratio");
-	ADD_GROUP("Theme", "");
+	ADD_GROUP("Theme", "theme_");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "theme", PROPERTY_HINT_RESOURCE_TYPE, "Theme"), "set_theme", "get_theme");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "theme_type_variation", PROPERTY_HINT_ENUM_SUGGESTION), "set_theme_type_variation", "get_theme_type_variation");
 	ADD_GROUP("", "");
 
 	BIND_ENUM_CONSTANT(FOCUS_NONE);
@@ -3061,5 +2934,5 @@ void Control::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("minimum_size_changed"));
 	ADD_SIGNAL(MethodInfo("theme_changed"));
 
-	BIND_VMETHOD(MethodInfo(Variant::BOOL, "has_point", PropertyInfo(Variant::VECTOR2, "point")));
+	GDVIRTUAL_BIND(_has_point);
 }

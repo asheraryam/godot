@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<class name="UDPServer" inherits="Reference" version="4.0">
+<class name="UDPServer" inherits="RefCounted" version="4.0">
 	<brief_description>
 		Helper class to implement a UDP server.
 	</brief_description>
@@ -123,6 +123,13 @@
 	<tutorials>
 	</tutorials>
 	<methods>
+		<method name="get_local_port" qualifiers="const">
+			<return type="int">
+			</return>
+			<description>
+				Returns the local port this server is listening to.
+			</description>
+		</method>
 		<method name="is_connection_available" qualifiers="const">
 			<return type="bool">
 			</return>
@@ -145,7 +152,7 @@
 			<argument index="1" name="bind_address" type="String" default="&quot;*&quot;">
 			</argument>
 			<description>
-				Starts the server by opening a UDP socket listening on the given port. You can optionally specify a [code]bind_address[/code] to only listen for packets sent to that address. See also [method PacketPeerUDP.listen].
+				Starts the server by opening a UDP socket listening on the given port. You can optionally specify a [code]bind_address[/code] to only listen for packets sent to that address. See also [method PacketPeerUDP.bind].
 			</description>
 		</method>
 		<method name="poll">

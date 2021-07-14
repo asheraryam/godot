@@ -435,27 +435,27 @@ Vector3 CPUParticles3D::get_gravity() const {
 
 void CPUParticles3D::_validate_property(PropertyInfo &property) const {
 	if (property.name == "color" && color_ramp.is_valid()) {
-		property.usage = 0;
+		property.usage = PROPERTY_USAGE_NONE;
 	}
 
 	if (property.name == "emission_sphere_radius" && emission_shape != EMISSION_SHAPE_SPHERE) {
-		property.usage = 0;
+		property.usage = PROPERTY_USAGE_NONE;
 	}
 
 	if (property.name == "emission_box_extents" && emission_shape != EMISSION_SHAPE_BOX) {
-		property.usage = 0;
+		property.usage = PROPERTY_USAGE_NONE;
 	}
 
 	if ((property.name == "emission_point_texture" || property.name == "emission_color_texture") && (emission_shape < EMISSION_SHAPE_POINTS)) {
-		property.usage = 0;
+		property.usage = PROPERTY_USAGE_NONE;
 	}
 
 	if (property.name == "emission_normals" && emission_shape != EMISSION_SHAPE_DIRECTED_POINTS) {
-		property.usage = 0;
+		property.usage = PROPERTY_USAGE_NONE;
 	}
 
 	if (property.name.begins_with("orbit_") && !particle_flags[PARTICLE_FLAG_DISABLE_Z]) {
-		property.usage = 0;
+		property.usage = PROPERTY_USAGE_NONE;
 	}
 }
 
@@ -574,7 +574,7 @@ void CPUParticles3D::_particles_process(float p_delta) {
 		}
 	}
 
-	Transform emission_xform;
+	Transform3D emission_xform;
 	Basis velocity_xform;
 	if (!local_coords) {
 		emission_xform = get_global_transform();
@@ -693,7 +693,7 @@ void CPUParticles3D::_particles_process(float p_delta) {
 			p.custom[0] = Math::deg2rad(base_angle); //angle
 			p.custom[1] = 0.0; //phase
 			p.custom[2] = (parameters[PARAM_ANIM_OFFSET] + tex_anim_offset) * Math::lerp(1.0f, p.anim_offset_rand, randomness[PARAM_ANIM_OFFSET]); //animation offset (0-1)
-			p.transform = Transform();
+			p.transform = Transform3D();
 			p.time = 0;
 			p.lifetime = lifetime * (1.0 - Math::randf() * lifetime_randomness);
 			p.base_color = Color(1, 1, 1, 1);
@@ -1030,7 +1030,7 @@ void CPUParticles3D::_update_particle_data_buffer() {
 	for (int i = 0; i < pc; i++) {
 		int idx = order ? order[i] : i;
 
-		Transform t = r[idx].transform;
+		Transform3D t = r[idx].transform;
 
 		if (!local_coords) {
 			t = inv_emission_transform * t;
@@ -1050,7 +1050,7 @@ void CPUParticles3D::_update_particle_data_buffer() {
 			ptr[10] = t.basis.elements[2][2];
 			ptr[11] = t.origin.z;
 		} else {
-			zeromem(ptr, sizeof(float) * 12);
+			memset(ptr, 0, sizeof(float) * 12);
 		}
 
 		Color c = r[idx].color;
@@ -1139,7 +1139,7 @@ void CPUParticles3D::_notification(int p_what) {
 			float *ptr = w;
 
 			for (int i = 0; i < pc; i++) {
-				Transform t = inv_emission_transform * r[i].transform;
+				Transform3D t = inv_emission_transform * r[i].transform;
 
 				if (r[i].active) {
 					ptr[0] = t.basis.elements[0][0];
@@ -1155,7 +1155,7 @@ void CPUParticles3D::_notification(int p_what) {
 					ptr[10] = t.basis.elements[2][2];
 					ptr[11] = t.origin.z;
 				} else {
-					zeromem(ptr, sizeof(float) * 12);
+					memset(ptr, 0, sizeof(float) * 12);
 				}
 
 				ptr += 20;
@@ -1273,11 +1273,11 @@ void CPUParticles3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("restart"), &CPUParticles3D::restart);
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "emitting"), "set_emitting", "is_emitting");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "amount", PROPERTY_HINT_EXP_RANGE, "1,1000000,1"), "set_amount", "get_amount");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "amount", PROPERTY_HINT_RANGE, "1,1000000,1,exp"), "set_amount", "get_amount");
 	ADD_GROUP("Time", "");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "lifetime", PROPERTY_HINT_EXP_RANGE, "0.01,600.0,0.01,or_greater"), "set_lifetime", "get_lifetime");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "lifetime", PROPERTY_HINT_RANGE, "0.01,600.0,0.01,or_greater,exp"), "set_lifetime", "get_lifetime");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "one_shot"), "set_one_shot", "get_one_shot");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "preprocess", PROPERTY_HINT_EXP_RANGE, "0.00,600.0,0.01"), "set_pre_process_time", "get_pre_process_time");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "preprocess", PROPERTY_HINT_RANGE, "0.00,600.0,0.01,exp"), "set_pre_process_time", "get_pre_process_time");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "speed_scale", PROPERTY_HINT_RANGE, "0,64,0.01"), "set_speed_scale", "get_speed_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "explosiveness", PROPERTY_HINT_RANGE, "0,1,0.01"), "set_explosiveness_ratio", "get_explosiveness_ratio");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "randomness", PROPERTY_HINT_RANGE, "0,1,0.01"), "set_randomness_ratio", "get_randomness_ratio");
@@ -1390,7 +1390,7 @@ void CPUParticles3D::_bind_methods() {
 	ADD_PROPERTYI(PropertyInfo(Variant::FLOAT, "damping_random", PROPERTY_HINT_RANGE, "0,1,0.01"), "set_param_randomness", "get_param_randomness", PARAM_DAMPING);
 	ADD_PROPERTYI(PropertyInfo(Variant::OBJECT, "damping_curve", PROPERTY_HINT_RESOURCE_TYPE, "Curve"), "set_param_curve", "get_param_curve", PARAM_DAMPING);
 	ADD_GROUP("Angle", "");
-	ADD_PROPERTYI(PropertyInfo(Variant::FLOAT, "angle", PROPERTY_HINT_RANGE, "-720,720,0.1,or_lesser,or_greater"), "set_param", "get_param", PARAM_ANGLE);
+	ADD_PROPERTYI(PropertyInfo(Variant::FLOAT, "angle", PROPERTY_HINT_RANGE, "-720,720,0.1,or_lesser,or_greater,degrees"), "set_param", "get_param", PARAM_ANGLE);
 	ADD_PROPERTYI(PropertyInfo(Variant::FLOAT, "angle_random", PROPERTY_HINT_RANGE, "0,1,0.01"), "set_param_randomness", "get_param_randomness", PARAM_ANGLE);
 	ADD_PROPERTYI(PropertyInfo(Variant::OBJECT, "angle_curve", PROPERTY_HINT_RESOURCE_TYPE, "Curve"), "set_param_curve", "get_param_curve", PARAM_ANGLE);
 	ADD_GROUP("Scale", "");

@@ -51,9 +51,11 @@ public:
 		TYPE_VERTEX,
 		TYPE_FRAGMENT,
 		TYPE_LIGHT,
-		TYPE_EMIT,
+		TYPE_START,
 		TYPE_PROCESS,
-		TYPE_END,
+		TYPE_COLLIDE,
+		TYPE_START_CUSTOM,
+		TYPE_PROCESS_CUSTOM,
 		TYPE_SKY,
 		TYPE_MAX
 	};
@@ -199,9 +201,12 @@ class VisualShaderNode : public Resource {
 	Map<int, Variant> default_input_values;
 	Map<int, bool> connected_input_ports;
 	Map<int, int> connected_output_ports;
+	Map<int, bool> expanded_output_ports;
 
 protected:
 	bool simple_decl = true;
+	bool disabled = false;
+
 	static void _bind_methods();
 
 public:
@@ -223,10 +228,12 @@ public:
 	virtual PortType get_input_port_type(int p_port) const = 0;
 	virtual String get_input_port_name(int p_port) const = 0;
 
-	void set_input_port_default_value(int p_port, const Variant &p_value);
+	virtual void set_input_port_default_value(int p_port, const Variant &p_value);
 	Variant get_input_port_default_value(int p_port) const; // if NIL (default if node does not set anything) is returned, it means no default value is wanted if disconnected, thus no input var must be supplied (empty string will be supplied)
 	Array get_default_input_values() const;
-	void set_default_input_values(const Array &p_values);
+	virtual void set_default_input_values(const Array &p_values);
+	virtual void remove_input_port_default_value(int p_port);
+	virtual void clear_default_input_values();
 
 	virtual int get_output_port_count() const = 0;
 	virtual PortType get_output_port_type(int p_port) const = 0;
@@ -245,9 +252,19 @@ public:
 	void set_input_port_connected(int p_port, bool p_connected);
 	virtual bool is_generate_input_var(int p_port) const;
 
+	virtual bool is_output_port_expandable(int p_port) const;
+	void _set_output_ports_expanded(const Array &p_data);
+	Array _get_output_ports_expanded() const;
+	void _set_output_port_expanded(int p_port, bool p_expanded);
+	bool _is_output_port_expanded(int p_port) const;
+	int get_expanded_output_port_count() const;
+
 	virtual bool is_code_generated() const;
 	virtual bool is_show_prop_names() const;
 	virtual bool is_use_prop_slots() const;
+
+	bool is_disabled() const;
+	void set_disabled(bool p_disabled = true);
 
 	virtual Vector<StringName> get_editable_properties() const;
 
@@ -255,7 +272,8 @@ public:
 	virtual String generate_global(Shader::Mode p_mode, VisualShader::Type p_type, int p_id) const;
 	virtual String generate_global_per_node(Shader::Mode p_mode, VisualShader::Type p_type, int p_id) const;
 	virtual String generate_global_per_func(Shader::Mode p_mode, VisualShader::Type p_type, int p_id) const;
-	virtual String generate_code(Shader::Mode p_mode, VisualShader::Type p_type, int p_id, const String *p_input_vars, const String *p_output_vars, bool p_for_preview = false) const = 0; //if no output is connected, the output var passed will be empty. if no input is connected and input is NIL, the input var passed will be empty
+	// If no output is connected, the output var passed will be empty. If no input is connected and input is NIL, the input var passed will be empty.
+	virtual String generate_code(Shader::Mode p_mode, VisualShader::Type p_type, int p_id, const String *p_input_vars, const String *p_output_vars, bool p_for_preview = false) const = 0;
 
 	virtual String get_warning(Shader::Mode p_mode, VisualShader::Type p_type) const;
 
@@ -272,6 +290,7 @@ class VisualShaderNodeCustom : public VisualShaderNode {
 		int type = 0;
 	};
 
+	bool is_initialized = false;
 	List<Port> input_ports;
 	List<Port> output_ports;
 
@@ -288,7 +307,14 @@ protected:
 	virtual PortType get_output_port_type(int p_port) const override;
 	virtual String get_output_port_name(int p_port) const override;
 
+	virtual void set_input_port_default_value(int p_port, const Variant &p_value) override;
+	virtual void set_default_input_values(const Array &p_values) override;
+	virtual void remove_input_port_default_value(int p_port) override;
+	virtual void clear_default_input_values() override;
+
 protected:
+	void _set_input_port_default_value(int p_port, const Variant &p_value);
+
 	virtual String generate_code(Shader::Mode p_mode, VisualShader::Type p_type, int p_id, const String *p_input_vars, const String *p_output_vars, bool p_for_preview = false) const override;
 	virtual String generate_global_per_node(Shader::Mode p_mode, VisualShader::Type p_type, int p_id) const override;
 
@@ -297,6 +323,9 @@ protected:
 public:
 	VisualShaderNodeCustom();
 	void update_ports();
+
+	bool _is_initialized();
+	void _set_initialized(bool p_enabled);
 };
 
 /////
@@ -320,6 +349,10 @@ class VisualShaderNodeInput : public VisualShaderNode {
 	static const Port preview_ports[];
 
 	String input_name = "[None]";
+
+public:
+	void set_shader_type(VisualShader::Type p_shader_type);
+	void set_shader_mode(Shader::Mode p_shader_mode);
 
 protected:
 	static void _bind_methods();
@@ -484,6 +517,7 @@ public:
 	String get_uniform_name_by_index(int p_idx) const;
 	UniformType get_uniform_type_by_name(const String &p_name) const;
 	UniformType get_uniform_type_by_index(int p_idx) const;
+	PortType get_port_type_by_index(int p_idx) const;
 
 	virtual Vector<StringName> get_editable_properties() const override;
 
@@ -601,8 +635,8 @@ public:
 	int get_free_input_port_id() const;
 	int get_free_output_port_id() const;
 
-	void set_control(Control *p_control, int p_index);
-	Control *get_control(int p_index);
+	void set_ctrl_pressed(Control *p_control, int p_index);
+	Control *is_ctrl_pressed(int p_index);
 
 	void set_editable(bool p_enabled);
 	bool is_editable() const;

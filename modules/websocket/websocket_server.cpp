@@ -34,7 +34,7 @@ GDCINULL(WebSocketServer);
 
 WebSocketServer::WebSocketServer() {
 	_peer_id = 1;
-	bind_ip = IP_Address("*");
+	bind_ip = IPAddress("*");
 }
 
 WebSocketServer::~WebSocketServer() {
@@ -55,15 +55,19 @@ void WebSocketServer::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_private_key"), &WebSocketServer::get_private_key);
 	ClassDB::bind_method(D_METHOD("set_private_key"), &WebSocketServer::set_private_key);
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "private_key", PROPERTY_HINT_RESOURCE_TYPE, "CryptoKey", 0), "set_private_key", "get_private_key");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "private_key", PROPERTY_HINT_RESOURCE_TYPE, "CryptoKey", PROPERTY_USAGE_NONE), "set_private_key", "get_private_key");
 
 	ClassDB::bind_method(D_METHOD("get_ssl_certificate"), &WebSocketServer::get_ssl_certificate);
 	ClassDB::bind_method(D_METHOD("set_ssl_certificate"), &WebSocketServer::set_ssl_certificate);
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "ssl_certificate", PROPERTY_HINT_RESOURCE_TYPE, "X509Certificate", 0), "set_ssl_certificate", "get_ssl_certificate");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "ssl_certificate", PROPERTY_HINT_RESOURCE_TYPE, "X509Certificate", PROPERTY_USAGE_NONE), "set_ssl_certificate", "get_ssl_certificate");
 
 	ClassDB::bind_method(D_METHOD("get_ca_chain"), &WebSocketServer::get_ca_chain);
 	ClassDB::bind_method(D_METHOD("set_ca_chain"), &WebSocketServer::set_ca_chain);
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "ca_chain", PROPERTY_HINT_RESOURCE_TYPE, "X509Certificate", 0), "set_ca_chain", "get_ca_chain");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "ca_chain", PROPERTY_HINT_RESOURCE_TYPE, "X509Certificate", PROPERTY_USAGE_NONE), "set_ca_chain", "get_ca_chain");
+
+	ClassDB::bind_method(D_METHOD("get_handshake_timeout"), &WebSocketServer::get_handshake_timeout);
+	ClassDB::bind_method(D_METHOD("set_handshake_timeout", "timeout"), &WebSocketServer::set_handshake_timeout);
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "handshake_timeout"), "set_handshake_timeout", "get_handshake_timeout");
 
 	ADD_SIGNAL(MethodInfo("client_close_request", PropertyInfo(Variant::INT, "id"), PropertyInfo(Variant::INT, "code"), PropertyInfo(Variant::STRING, "reason")));
 	ADD_SIGNAL(MethodInfo("client_disconnected", PropertyInfo(Variant::INT, "id"), PropertyInfo(Variant::BOOL, "was_clean_close")));
@@ -71,11 +75,11 @@ void WebSocketServer::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("data_received", PropertyInfo(Variant::INT, "id")));
 }
 
-IP_Address WebSocketServer::get_bind_ip() const {
+IPAddress WebSocketServer::get_bind_ip() const {
 	return bind_ip;
 }
 
-void WebSocketServer::set_bind_ip(const IP_Address &p_bind_ip) {
+void WebSocketServer::set_bind_ip(const IPAddress &p_bind_ip) {
 	ERR_FAIL_COND(is_listening());
 	ERR_FAIL_COND(!p_bind_ip.is_valid() && !p_bind_ip.is_wildcard());
 	bind_ip = p_bind_ip;
@@ -108,7 +112,16 @@ void WebSocketServer::set_ca_chain(Ref<X509Certificate> p_ca_chain) {
 	ca_chain = p_ca_chain;
 }
 
-NetworkedMultiplayerPeer::ConnectionStatus WebSocketServer::get_connection_status() const {
+float WebSocketServer::get_handshake_timeout() const {
+	return handshake_timeout / 1000.0;
+}
+
+void WebSocketServer::set_handshake_timeout(float p_timeout) {
+	ERR_FAIL_COND(p_timeout <= 0.0);
+	handshake_timeout = p_timeout * 1000;
+}
+
+MultiplayerPeer::ConnectionStatus WebSocketServer::get_connection_status() const {
 	if (is_listening()) {
 		return CONNECTION_CONNECTED;
 	}

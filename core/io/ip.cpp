@@ -41,13 +41,15 @@ VARIANT_ENUM_CAST(IP::ResolverStatus);
 struct _IP_ResolverPrivate {
 	struct QueueItem {
 		SafeNumeric<IP::ResolverStatus> status;
-		IP_Address response;
+
+		List<IPAddress> response;
+
 		String hostname;
 		IP::Type type;
 
 		void clear() {
 			status.set(IP::RESOLVER_STATUS_NONE);
-			response = IP_Address();
+			response.clear();
 			type = IP::TYPE_NONE;
 			hostname = "";
 		};
@@ -80,13 +82,9 @@ struct _IP_ResolverPrivate {
 			if (queue[i].status.get() != IP::RESOLVER_STATUS_WAITING) {
 				continue;
 			}
-			queue[i].response = IP::get_singleton()->resolve_hostname(queue[i].hostname, queue[i].type);
 
-			if (!queue[i].response.is_valid()) {
-				queue[i].status.set(IP::RESOLVER_STATUS_ERROR);
-			} else {
-				queue[i].status.set(IP::RESOLVER_STATUS_DONE);
-			}
+			IP::get_singleton()->_resolve_hostname(queue[i].response, queue[i].hostname, queue[i].type);
+			queue[i].status.set(queue[i].response.is_empty() ? IP::RESOLVER_STATUS_ERROR : IP::RESOLVER_STATUS_DONE);
 		}
 	}
 
@@ -101,25 +99,51 @@ struct _IP_ResolverPrivate {
 		}
 	}
 
-	HashMap<String, IP_Address> cache;
+	HashMap<String, List<IPAddress>> cache;
 
 	static String get_cache_key(String p_hostname, IP::Type p_type) {
 		return itos(p_type) + p_hostname;
 	}
 };
 
-IP_Address IP::resolve_hostname(const String &p_hostname, IP::Type p_type) {
+IPAddress IP::resolve_hostname(const String &p_hostname, IP::Type p_type) {
+	MutexLock lock(resolver->mutex);
+
+	List<IPAddress> res;
+
+	String key = _IP_ResolverPrivate::get_cache_key(p_hostname, p_type);
+	if (resolver->cache.has(key)) {
+		res = resolver->cache[key];
+	} else {
+		_resolve_hostname(res, p_hostname, p_type);
+		resolver->cache[key] = res;
+	}
+
+	for (int i = 0; i < res.size(); ++i) {
+		if (res[i].is_valid()) {
+			return res[i];
+		}
+	}
+	return IPAddress();
+}
+
+Array IP::resolve_hostname_addresses(const String &p_hostname, Type p_type) {
 	MutexLock lock(resolver->mutex);
 
 	String key = _IP_ResolverPrivate::get_cache_key(p_hostname, p_type);
-	if (resolver->cache.has(key) && resolver->cache[key].is_valid()) {
-		IP_Address res = resolver->cache[key];
-		return res;
+	if (!resolver->cache.has(key)) {
+		_resolve_hostname(resolver->cache[key], p_hostname, p_type);
 	}
 
-	IP_Address res = _resolve_hostname(p_hostname, p_type);
-	resolver->cache[key] = res;
-	return res;
+	List<IPAddress> res = resolver->cache[key];
+
+	Array result;
+	for (int i = 0; i < res.size(); ++i) {
+		if (res[i].is_valid()) {
+			result.push_back(String(res[i]));
+		}
+	}
+	return result;
 }
 
 IP::ResolverID IP::resolve_hostname_queue_item(const String &p_hostname, IP::Type p_type) {
@@ -135,11 +159,11 @@ IP::ResolverID IP::resolve_hostname_queue_item(const String &p_hostname, IP::Typ
 	String key = _IP_ResolverPrivate::get_cache_key(p_hostname, p_type);
 	resolver->queue[id].hostname = p_hostname;
 	resolver->queue[id].type = p_type;
-	if (resolver->cache.has(key) && resolver->cache[key].is_valid()) {
+	if (resolver->cache.has(key)) {
 		resolver->queue[id].response = resolver->cache[key];
 		resolver->queue[id].status.set(IP::RESOLVER_STATUS_DONE);
 	} else {
-		resolver->queue[id].response = IP_Address();
+		resolver->queue[id].response = List<IPAddress>();
 		resolver->queue[id].status.set(IP::RESOLVER_STATUS_WAITING);
 		if (resolver->thread.is_started()) {
 			resolver->sem.post();
@@ -158,24 +182,49 @@ IP::ResolverStatus IP::get_resolve_item_status(ResolverID p_id) const {
 
 	if (resolver->queue[p_id].status.get() == IP::RESOLVER_STATUS_NONE) {
 		ERR_PRINT("Condition status == IP::RESOLVER_STATUS_NONE");
-		resolver->mutex.unlock();
 		return IP::RESOLVER_STATUS_NONE;
 	}
 	return resolver->queue[p_id].status.get();
 }
 
-IP_Address IP::get_resolve_item_address(ResolverID p_id) const {
-	ERR_FAIL_INDEX_V(p_id, IP::RESOLVER_MAX_QUERIES, IP_Address());
+IPAddress IP::get_resolve_item_address(ResolverID p_id) const {
+	ERR_FAIL_INDEX_V(p_id, IP::RESOLVER_MAX_QUERIES, IPAddress());
 
 	MutexLock lock(resolver->mutex);
 
 	if (resolver->queue[p_id].status.get() != IP::RESOLVER_STATUS_DONE) {
 		ERR_PRINT("Resolve of '" + resolver->queue[p_id].hostname + "'' didn't complete yet.");
-		resolver->mutex.unlock();
-		return IP_Address();
+		return IPAddress();
 	}
 
-	return resolver->queue[p_id].response;
+	List<IPAddress> res = resolver->queue[p_id].response;
+
+	for (int i = 0; i < res.size(); ++i) {
+		if (res[i].is_valid()) {
+			return res[i];
+		}
+	}
+	return IPAddress();
+}
+
+Array IP::get_resolve_item_addresses(ResolverID p_id) const {
+	ERR_FAIL_INDEX_V(p_id, IP::RESOLVER_MAX_QUERIES, Array());
+	MutexLock lock(resolver->mutex);
+
+	if (resolver->queue[p_id].status.get() != IP::RESOLVER_STATUS_DONE) {
+		ERR_PRINT("Resolve of '" + resolver->queue[p_id].hostname + "'' didn't complete yet.");
+		return Array();
+	}
+
+	List<IPAddress> res = resolver->queue[p_id].response;
+
+	Array result;
+	for (int i = 0; i < res.size(); ++i) {
+		if (res[i].is_valid()) {
+			result.push_back(String(res[i]));
+		}
+	}
+	return result;
 }
 
 void IP::erase_resolve_item(ResolverID p_id) {
@@ -201,9 +250,9 @@ void IP::clear_cache(const String &p_hostname) {
 
 Array IP::_get_local_addresses() const {
 	Array addresses;
-	List<IP_Address> ip_addresses;
+	List<IPAddress> ip_addresses;
 	get_local_addresses(&ip_addresses);
-	for (List<IP_Address>::Element *E = ip_addresses.front(); E; E = E->next()) {
+	for (List<IPAddress>::Element *E = ip_addresses.front(); E; E = E->next()) {
 		addresses.push_back(E->get());
 	}
 
@@ -222,7 +271,7 @@ Array IP::_get_local_interfaces() const {
 		rc["index"] = c.index;
 
 		Array ips;
-		for (const List<IP_Address>::Element *F = c.ip_addresses.front(); F; F = F->next()) {
+		for (const List<IPAddress>::Element *F = c.ip_addresses.front(); F; F = F->next()) {
 			ips.push_front(F->get());
 		}
 		rc["addresses"] = ips;
@@ -233,11 +282,11 @@ Array IP::_get_local_interfaces() const {
 	return results;
 }
 
-void IP::get_local_addresses(List<IP_Address> *r_addresses) const {
+void IP::get_local_addresses(List<IPAddress> *r_addresses) const {
 	Map<String, Interface_Info> interfaces;
 	get_local_interfaces(&interfaces);
 	for (Map<String, Interface_Info>::Element *E = interfaces.front(); E; E = E->next()) {
-		for (const List<IP_Address>::Element *F = E->get().ip_addresses.front(); F; F = F->next()) {
+		for (const List<IPAddress>::Element *F = E->get().ip_addresses.front(); F; F = F->next()) {
 			r_addresses->push_front(F->get());
 		}
 	}
@@ -245,9 +294,11 @@ void IP::get_local_addresses(List<IP_Address> *r_addresses) const {
 
 void IP::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("resolve_hostname", "host", "ip_type"), &IP::resolve_hostname, DEFVAL(IP::TYPE_ANY));
+	ClassDB::bind_method(D_METHOD("resolve_hostname_addresses", "host", "ip_type"), &IP::resolve_hostname_addresses, DEFVAL(IP::TYPE_ANY));
 	ClassDB::bind_method(D_METHOD("resolve_hostname_queue_item", "host", "ip_type"), &IP::resolve_hostname_queue_item, DEFVAL(IP::TYPE_ANY));
 	ClassDB::bind_method(D_METHOD("get_resolve_item_status", "id"), &IP::get_resolve_item_status);
 	ClassDB::bind_method(D_METHOD("get_resolve_item_address", "id"), &IP::get_resolve_item_address);
+	ClassDB::bind_method(D_METHOD("get_resolve_item_addresses", "id"), &IP::get_resolve_item_addresses);
 	ClassDB::bind_method(D_METHOD("erase_resolve_item", "id"), &IP::erase_resolve_item);
 	ClassDB::bind_method(D_METHOD("get_local_addresses"), &IP::_get_local_addresses);
 	ClassDB::bind_method(D_METHOD("get_local_interfaces"), &IP::_get_local_interfaces);

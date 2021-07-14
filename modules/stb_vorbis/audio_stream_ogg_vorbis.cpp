@@ -30,7 +30,7 @@
 
 #include "audio_stream_ogg_vorbis.h"
 
-#include "core/os/file_access.h"
+#include "core/io/file_access.h"
 
 void AudioStreamPlaybackOGGVorbis::_mix_internal(AudioFrame *p_buffer, int p_frames) {
 	ERR_FAIL_COND(!active);
@@ -129,7 +129,7 @@ Ref<AudioStreamPlayback> AudioStreamOGGVorbis::instance_playback() {
 			"to it. AudioStreamOGGVorbis should not be created from the "
 			"inspector or with `.new()`. Instead, load an audio file.");
 
-	ovs.instance();
+	ovs.instantiate();
 	ovs->vorbis_stream = Ref<AudioStreamOGGVorbis>(this);
 	ovs->ogg_alloc.alloc_buffer = (char *)memalloc(decode_mem_size);
 	ovs->ogg_alloc.alloc_buffer_length_in_bytes = decode_mem_size;
@@ -204,7 +204,7 @@ void AudioStreamOGGVorbis::set_data(const Vector<uint8_t> &p_data) {
 			clear_data();
 
 			data = memalloc(src_data_len);
-			copymem(data, src_datar, src_data_len);
+			memcpy(data, src_datar, src_data_len);
 			data_len = src_data_len;
 
 			break;
@@ -221,7 +221,7 @@ Vector<uint8_t> AudioStreamOGGVorbis::get_data() const {
 		vdata.resize(data_len);
 		{
 			uint8_t *w = vdata.ptrw();
-			copymem(w, data, data_len);
+			memcpy(w, data, data_len);
 		}
 	}
 

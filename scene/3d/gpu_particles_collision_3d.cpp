@@ -131,7 +131,7 @@ void GPUParticlesCollisionSDF::_find_meshes(const AABB &p_aabb, Node *p_at_node,
 		if (mesh.is_valid()) {
 			AABB aabb = mesh->get_aabb();
 
-			Transform xf = get_global_transform().affine_inverse() * mi->get_global_transform();
+			Transform3D xf = get_global_transform().affine_inverse() * mi->get_global_transform();
 
 			if (p_aabb.intersects(xf.xform(aabb))) {
 				PlotMesh pm;
@@ -147,7 +147,7 @@ void GPUParticlesCollisionSDF::_find_meshes(const AABB &p_aabb, Node *p_at_node,
 		if (s->is_visible_in_tree()) {
 			Array meshes = p_at_node->call("get_meshes");
 			for (int i = 0; i < meshes.size(); i += 2) {
-				Transform mxf = meshes[i];
+				Transform3D mxf = meshes[i];
 				Ref<Mesh> mesh = meshes[i + 1];
 				if (!mesh.is_valid()) {
 					continue;
@@ -155,7 +155,7 @@ void GPUParticlesCollisionSDF::_find_meshes(const AABB &p_aabb, Node *p_at_node,
 
 				AABB aabb = mesh->get_aabb();
 
-				Transform xf = get_global_transform().affine_inverse() * (s->get_global_transform() * mxf);
+				Transform3D xf = get_global_transform().affine_inverse() * (s->get_global_transform() * mxf);
 
 				if (p_aabb.intersects(xf.xform(aabb))) {
 					PlotMesh pm;
@@ -495,7 +495,7 @@ Ref<Image> GPUParticlesCollisionSDF::bake() {
 	_compute_sdf(&params);
 
 	Ref<Image> ret;
-	ret.instance();
+	ret.instantiate();
 	ret->create(sdf_size.x, sdf_size.y * sdf_size.z, false, Image::FORMAT_RF, data);
 	ret->convert(Image::FORMAT_RH); //convert to half, save space
 	ret->set_meta("depth", sdf_size.z); //hack, make sure to add to the docs of this function
@@ -598,14 +598,14 @@ void GPUParticlesCollisionHeightField::_notification(int p_what) {
 		if (follow_camera_mode && get_viewport()) {
 			Camera3D *cam = get_viewport()->get_camera();
 			if (cam) {
-				Transform xform = get_global_transform();
+				Transform3D xform = get_global_transform();
 				Vector3 x_axis = xform.basis.get_axis(Vector3::AXIS_X).normalized();
 				Vector3 z_axis = xform.basis.get_axis(Vector3::AXIS_Z).normalized();
 				float x_len = xform.basis.get_scale().x;
 				float z_len = xform.basis.get_scale().z;
 
 				Vector3 cam_pos = cam->get_global_transform().origin;
-				Transform new_xform = xform;
+				Transform3D new_xform = xform;
 
 				while (x_axis.dot(cam_pos - new_xform.origin) > x_len) {
 					new_xform.origin += x_axis * x_len;
@@ -653,7 +653,7 @@ void GPUParticlesCollisionHeightField::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "extents", PROPERTY_HINT_RANGE, "0.01,1024,0.01,or_greater"), "set_extents", "get_extents");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "resolution", PROPERTY_HINT_ENUM, "256,512,1024,2048,4096,8192"), "set_resolution", "get_resolution");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "update_mode", PROPERTY_HINT_ENUM, "WhenMoved,Always"), "set_update_mode", "get_update_mode");
-	ADD_GROUP("Folow Camera", "follow_camera_");
+	ADD_GROUP("Follow Camera", "follow_camera_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "follow_camera_enabled"), "set_follow_camera_mode", "is_follow_camera_mode_enabled");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "follow_camera_push_ratio", PROPERTY_HINT_RANGE, "0.01,1,0.01"), "set_follow_camera_push_ratio", "get_follow_camera_push_ratio");
 

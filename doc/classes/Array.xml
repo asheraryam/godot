@@ -33,8 +33,8 @@
 		[/gdscript]
 		[csharp]
 		// Array concatenation is not possible with C# arrays, but is with Godot.Collections.Array.
-		var array1 = new Godot.Collections.Array("One", 2);
-		var array2 = new Godot.Collections.Array(3, "Four");
+		var array1 = new Godot.Collections.Array{"One", 2};
+		var array2 = new Godot.Collections.Array{3, "Four"};
 		GD.Print(array1 + array2); // Prints [One, 2, 3, Four]
 		[/csharp]
 		[/codeblocks]
@@ -237,6 +237,45 @@
 				[b]Note:[/b] On large arrays, this method will be slower if the removed element is close to the beginning of the array (index 0). This is because all elements placed after the removed element have to be reindexed.
 			</description>
 		</method>
+		<method name="fill">
+			<return type="void">
+			</return>
+			<argument index="0" name="value" type="Variant">
+			</argument>
+			<description>
+				Assigns the given value to all elements in the array. This can typically be used together with [method resize] to create an array with a given size and initialized elements:
+				[codeblocks]
+				[gdscript]
+				var array = []
+				array.resize(10)
+				array.fill(0) # Initialize the 10 elements to 0.
+				[/gdscript]
+				[csharp]
+				var array = new Godot.Collections.Array{};
+				array.Resize(10);
+				array.Fill(0); // Initialize the 10 elements to 0.
+				[/csharp]
+				[/codeblocks]
+			</description>
+		</method>
+		<method name="filter" qualifiers="const">
+			<return type="Array">
+			</return>
+			<argument index="0" name="method" type="Callable">
+			</argument>
+			<description>
+				Calls the provided [Callable] on each element in the array and returns a new array with the elements for which the method returned [code]true[/code].
+				The callable's method should take one [Variant] parameter (the current array element) and return a boolean value.
+				[codeblock]
+				func _ready():
+				    print([1, 2, 3].filter(remove_1)) # Prints [2, 3].
+				    print([1, 2, 3].filter(func(number): return number != 1)) # Same as above, but using lambda function.
+
+				func remove_1(number):
+				    return number != 1
+				[/codeblock]
+			</description>
+		</method>
 		<method name="find" qualifiers="const">
 			<return type="int">
 			</return>
@@ -294,14 +333,14 @@
 				[gdscript]
 				# Will evaluate to `true`.
 				if 2 in [2, 4, 6, 8]:
-				    print("Containes!")
+				    print("Contains!")
 				[/gdscript]
 				[csharp]
 				// As there is no "in" keyword in C#, you have to use Contains
 				var array = new Godot.Collections.Array{2, 4, 6, 8};
 				if (array.Contains(2))
 				{
-				    GD.Print("Containes!");
+				    GD.Print("Contains!");
 				}
 				[/csharp]
 				[/codeblocks]
@@ -333,6 +372,24 @@
 			</return>
 			<description>
 				Returns [code]true[/code] if the array is empty.
+			</description>
+		</method>
+		<method name="map" qualifiers="const">
+			<return type="Array">
+			</return>
+			<argument index="0" name="method" type="Callable">
+			</argument>
+			<description>
+				Calls the provided [Callable] for each element in the array and returns a new array filled with values returned by the method.
+				The callable's method should take one [Variant] parameter (the current array element) and can return any [Variant].
+				[codeblock]
+				func _ready():
+				    print([1, 2, 3].map(negate)) # Prints [-1, -2, -3].
+				    print([1, 2, 3].map(func(number): return -number)) # Same as above, but using lambda function.
+
+				func negate(number):
+				    return -number
+				[/codeblock]
 			</description>
 		</method>
 		<method name="max" qualifiers="const">
@@ -447,6 +504,26 @@
 				[b]Note:[/b] On large arrays, this method is much slower than [method push_back] as it will reindex all the array's elements every time it's called. The larger the array, the slower [method push_front] will be.
 			</description>
 		</method>
+		<method name="reduce" qualifiers="const">
+			<return type="Variant">
+			</return>
+			<argument index="0" name="method" type="Callable">
+			</argument>
+			<argument index="1" name="accum" type="Variant" default="null">
+			</argument>
+			<description>
+				Calls the provided [Callable] for each element in array and accumulates the result in [code]accum[/code].
+				The callable's method takes two arguments: the current value of [code]accum[/code] and the current array element. If [code]accum[/code] is [code]null[/code] (default value), the iteration will start from the second element, with the first one used as initial value of [code]accum[/code].
+				[codeblock]
+				func _ready():
+				    print([1, 2, 3].reduce(sum, 10)) # Prints 16.
+				    print([1, 2, 3].reduce(func(accum, number): return accum + number, 10)) # Same as above, but using lambda function.
+
+				func sum(accum, number):
+				    return accum + number
+				[/codeblock]
+			</description>
+		</method>
 		<method name="remove">
 			<return type="void">
 			</return>
@@ -538,7 +615,7 @@
 			<argument index="0" name="func" type="Callable">
 			</argument>
 			<description>
-				Sorts the array using a custom method. The custom method receives two arguments (a pair of elements from the array) and must return either [code]true[/code] or [code]false[/code].
+				Sorts the array using a custom method. The custom method receives two arguments (a pair of elements from the array) and must return either [code]true[/code] or [code]false[/code]. For two elements [code]a[/code] and [code]b[/code], if the given method returns [code]true[/code], element [code]b[/code] will be after element [code]a[/code] in the array.
 				[b]Note:[/b] you cannot randomize the return value as the heapsort algorithm expects a deterministic result. Doing so will result in unexpected behavior.
 				[codeblocks]
 				[gdscript]

@@ -107,10 +107,13 @@ public:
 private:
 	ShadowCastingSetting shadow_casting_setting = SHADOW_CASTING_SETTING_ON;
 	Ref<Material> material_override;
-	float lod_min_distance = 0.0;
-	float lod_max_distance = 0.0;
-	float lod_min_hysteresis = 0.0;
-	float lod_max_hysteresis = 0.0;
+
+	float visibility_range_begin = 0.0;
+	float visibility_range_end = 0.0;
+	float visibility_range_begin_margin = 0.0;
+	float visibility_range_end_margin = 0.0;
+
+	Vector<NodePath> visibility_range_children;
 
 	float lod_bias = 1.0;
 
@@ -120,6 +123,7 @@ private:
 	float extra_cull_margin = 0.0;
 	LightmapScale lightmap_scale = LIGHTMAP_SCALE_1X;
 	GIMode gi_mode = GI_MODE_DISABLED;
+	bool ignore_occlusion_culling = false;
 
 	const StringName *_instance_uniform_get_remap(const StringName p_name) const;
 
@@ -135,17 +139,20 @@ public:
 	void set_cast_shadows_setting(ShadowCastingSetting p_shadow_casting_setting);
 	ShadowCastingSetting get_cast_shadows_setting() const;
 
-	void set_lod_min_distance(float p_dist);
-	float get_lod_min_distance() const;
+	void set_visibility_range_begin(float p_dist);
+	float get_visibility_range_begin() const;
 
-	void set_lod_max_distance(float p_dist);
-	float get_lod_max_distance() const;
+	void set_visibility_range_end(float p_dist);
+	float get_visibility_range_end() const;
 
-	void set_lod_min_hysteresis(float p_dist);
-	float get_lod_min_hysteresis() const;
+	void set_visibility_range_begin_margin(float p_dist);
+	float get_visibility_range_begin_margin() const;
 
-	void set_lod_max_hysteresis(float p_dist);
-	float get_lod_max_hysteresis() const;
+	void set_visibility_range_end_margin(float p_dist);
+	float get_visibility_range_end_margin() const;
+
+	void set_visibility_range_parent(const Node *p_parent);
+	void clear_visibility_range_parent();
 
 	void set_material_override(const Ref<Material> &p_material);
 	Ref<Material> get_material_override() const;
@@ -166,6 +173,9 @@ public:
 	Variant get_shader_instance_uniform(const StringName &p_uniform) const;
 
 	void set_custom_aabb(AABB aabb);
+
+	void set_ignore_occlusion_culling(bool p_enabled);
+	bool is_ignoring_occlusion_culling();
 
 	GeometryInstance3D();
 };

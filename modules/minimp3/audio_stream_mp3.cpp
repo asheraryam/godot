@@ -35,7 +35,7 @@
 
 #include "audio_stream_mp3.h"
 
-#include "core/os/file_access.h"
+#include "core/io/file_access.h"
 
 void AudioStreamPlaybackMP3::_mix_internal(AudioFrame *p_buffer, int p_frames) {
 	ERR_FAIL_COND(!active);
@@ -126,7 +126,7 @@ Ref<AudioStreamPlayback> AudioStreamMP3::instance_playback() {
 			"to it. AudioStreamMP3 should not be created from the "
 			"inspector or with `.new()`. Instead, load an audio file.");
 
-	mp3s.instance();
+	mp3s.instantiate();
 	mp3s->mp3_stream = Ref<AudioStreamMP3>(this);
 	mp3s->mp3d = (mp3dec_ex_t *)memalloc(sizeof(mp3dec_ex_t));
 
@@ -172,7 +172,7 @@ void AudioStreamMP3::set_data(const Vector<uint8_t> &p_data) {
 	clear_data();
 
 	data = memalloc(src_data_len);
-	copymem(data, src_datar, src_data_len);
+	memcpy(data, src_datar, src_data_len);
 	data_len = src_data_len;
 }
 
@@ -183,7 +183,7 @@ Vector<uint8_t> AudioStreamMP3::get_data() const {
 		vdata.resize(data_len);
 		{
 			uint8_t *w = vdata.ptrw();
-			copymem(w, data, data_len);
+			memcpy(w, data, data_len);
 		}
 	}
 

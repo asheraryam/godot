@@ -1024,7 +1024,7 @@ void AnimationTrackEditTypeAudio::drop_data(const Point2 &p_point, const Variant
 
 			get_undo_redo()->create_action(TTR("Add Audio Track Clip"));
 			get_undo_redo()->add_do_method(get_animation().ptr(), "audio_track_insert_key", get_track(), ofs, stream);
-			get_undo_redo()->add_undo_method(get_animation().ptr(), "track_remove_key_at_position", get_track(), ofs);
+			get_undo_redo()->add_undo_method(get_animation().ptr(), "track_remove_key_at_time", get_track(), ofs);
 			get_undo_redo()->commit_action();
 
 			update();
@@ -1091,7 +1091,7 @@ void AnimationTrackEditTypeAudio::_gui_input(const Ref<InputEvent> &p_event) {
 
 	if (len_resizing && mm.is_valid()) {
 		len_resizing_rel += mm->get_relative().x;
-		len_resizing_start = mm->get_shift();
+		len_resizing_start = mm->is_shift_pressed();
 		update();
 		accept_event();
 		return;
@@ -1100,7 +1100,7 @@ void AnimationTrackEditTypeAudio::_gui_input(const Ref<InputEvent> &p_event) {
 	Ref<InputEventMouseButton> mb = p_event;
 	if (mb.is_valid() && mb->is_pressed() && mb->get_button_index() == MOUSE_BUTTON_LEFT && get_default_cursor_shape() == CURSOR_HSIZE) {
 		len_resizing = true;
-		len_resizing_start = mb->get_shift();
+		len_resizing_start = mb->is_shift_pressed();
 		len_resizing_from_px = mb->get_position().x;
 		len_resizing_rel = 0;
 		update();

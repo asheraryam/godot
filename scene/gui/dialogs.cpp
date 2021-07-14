@@ -97,7 +97,7 @@ void AcceptDialog::_notification(int p_what) {
 	}
 }
 
-void AcceptDialog::_text_entered(const String &p_text) {
+void AcceptDialog::_text_submitted(const String &p_text) {
 	_ok_pressed();
 }
 
@@ -148,18 +148,18 @@ bool AcceptDialog::get_hide_on_ok() const {
 }
 
 void AcceptDialog::set_autowrap(bool p_autowrap) {
-	label->set_autowrap(p_autowrap);
+	label->set_autowrap_mode(p_autowrap ? Label::AUTOWRAP_WORD : Label::AUTOWRAP_OFF);
 }
 
 bool AcceptDialog::has_autowrap() {
-	return label->has_autowrap();
+	return label->get_autowrap_mode() != Label::AUTOWRAP_OFF;
 }
 
-void AcceptDialog::register_text_enter(Node *p_line_edit) {
+void AcceptDialog::register_text_enter(Control *p_line_edit) {
 	ERR_FAIL_NULL(p_line_edit);
 	LineEdit *line_edit = Object::cast_to<LineEdit>(p_line_edit);
 	if (line_edit) {
-		line_edit->connect("text_entered", callable_mp(this, &AcceptDialog::_text_entered));
+		line_edit->connect("text_submitted", callable_mp(this, &AcceptDialog::_text_submitted));
 	}
 }
 
@@ -263,6 +263,28 @@ Button *AcceptDialog::add_cancel_button(const String &p_cancel) {
 	return b;
 }
 
+void AcceptDialog::remove_button(Control *p_button) {
+	Button *button = Object::cast_to<Button>(p_button);
+	ERR_FAIL_NULL(button);
+	ERR_FAIL_COND_MSG(button->get_parent() != hbc, vformat("Cannot remove button %s as it does not belong to this dialog.", button->get_name()));
+	ERR_FAIL_COND_MSG(button == ok, "Cannot remove dialog's OK button.");
+
+	Node *right_spacer = hbc->get_child(button->get_index() + 1);
+	// Should always be valid but let's avoid crashing
+	if (right_spacer) {
+		hbc->remove_child(right_spacer);
+		memdelete(right_spacer);
+	}
+	hbc->remove_child(button);
+
+	if (button->is_connected("pressed", callable_mp(this, &AcceptDialog::_custom_action))) {
+		button->disconnect("pressed", callable_mp(this, &AcceptDialog::_custom_action));
+	}
+	if (button->is_connected("pressed", callable_mp(this, &AcceptDialog::_cancel_pressed))) {
+		button->disconnect("pressed", callable_mp(this, &AcceptDialog::_cancel_pressed));
+	}
+}
+
 void AcceptDialog::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_ok_button"), &AcceptDialog::get_ok_button);
 	ClassDB::bind_method(D_METHOD("get_label"), &AcceptDialog::get_label);
@@ -270,6 +292,7 @@ void AcceptDialog::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_hide_on_ok"), &AcceptDialog::get_hide_on_ok);
 	ClassDB::bind_method(D_METHOD("add_button", "text", "right", "action"), &AcceptDialog::add_button, DEFVAL(false), DEFVAL(""));
 	ClassDB::bind_method(D_METHOD("add_cancel_button", "name"), &AcceptDialog::add_cancel_button);
+	ClassDB::bind_method(D_METHOD("remove_button", "button"), &AcceptDialog::remove_button);
 	ClassDB::bind_method(D_METHOD("register_text_enter", "line_edit"), &AcceptDialog::register_text_enter);
 	ClassDB::bind_method(D_METHOD("set_text", "text"), &AcceptDialog::set_text);
 	ClassDB::bind_method(D_METHOD("get_text"), &AcceptDialog::get_text);

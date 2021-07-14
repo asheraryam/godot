@@ -8,13 +8,12 @@ readability.
 ## basis_universal
 
 - Upstream: https://github.com/BinomialLLC/basis_universal
-- Version: git (895ee8ee7e04f22267f8d16d46de04d5a01d63ac, 2020)
+- Version: git (ba1c3e40f1d434ebaf9a167b44e9b11d2bf0f765, 2021)
 - License: Apache 2.0
 
 Files extracted from upstream source:
 
-- `.cpp` and `.h` files in root folder except for `basisu_tool.cpp` (contains `main` and can cause link error)
-- `.cpp`, `.h` and `.inc` files in `transcoder/`, keeping folder structure
+- `encoder/` and `transcoder/` folders
 - `LICENSE`
 
 
@@ -60,6 +59,26 @@ Files extracted from upstream source:
 - License: MIT
 
 Extracted from .zip provided. Extracted license and header only.
+
+
+## embree
+
+- Upstream: https://github.com/embree/embree
+- Version: 3.13.0 (7c53133eb21424f7f0ae1e25bf357e358feaf6ab, 2021)
+- License: Apache 2.0
+
+Files extracted from upstream:
+
+- All cpp files listed in `modules/raycast/godot_update_embree.py`
+- All header files in the directories listed in `modules/raycast/godot_update_embree.py`
+
+The `modules/raycast/godot_update_embree.py` script can be used to pull the
+relevant files from the latest Embree release and apply some automatic changes.
+
+Some changes have been made in order to remove exceptions and fix minor build errors.
+They are marked with `// -- GODOT start --` and `// -- GODOT end --`
+comments. Apply the patches in the `patches/` folder when syncing on newer upstream
+commits.
 
 
 ## enet
@@ -117,6 +136,10 @@ Files extracted from upstream source:
 - `DroidSans*.ttf`:
   * Upstream: https://android.googlesource.com/platform/frameworks/base/+/master/data/fonts/
   * Version: ? (pre-2014 commit when DroidSansJapanese.ttf was obsoleted)
+  * License: Apache 2.0
+- `OpenSans_SemiBold.ttf`:
+  * Upstream: https://fonts.google.com/specimen/Open+Sans
+  * Version: 1.10 (downloaded from Google Fonts in February 2021)
   * License: Apache 2.0
 - `Tamsyn*.png`:
   * Upstream: http://www.fial.com/~scott/tamsyn-font/
@@ -344,13 +367,16 @@ File extracted from upstream release tarball:
 ## meshoptimizer
 
 - Upstream: https://github.com/zeux/meshoptimizer
-- Version: 0.16 (95893c0566646434dd675b708d293fcb2d526d08, 2021)
+- Version: git (f5d83e879c48f8664783a69b4f50711d27549b66, 2021)
 - License: MIT
 
 Files extracted from upstream repository:
 
 - All files in `src/`.
 - `LICENSE.md`.
+
+An [experimental upstream feature](https://github.com/zeux/meshoptimizer/tree/simplify-attr),
+has been backported, see patch in `patches` directory.
 
 
 ## miniupnpc
@@ -443,6 +469,10 @@ Collection of single-file libraries used in Godot components.
   * Version: git (2f625846a775501fb69456567409a8b12f10ea25, 2012)
   * License: BSD-3-Clause
   * Modifications: use `const char*` instead of `char*` for input string
+- `smolv.h`
+  * Upstream: https://github.com/aras-p/smol-v
+  * Version: git (4b52c165c13763051a18e80ffbc2ee436314ceb2, 2020)
+  * License: Public Domain or MIT
 - `stb_rect_pack.h`
   * Upstream: https://github.com/nothings/stb
   * Version: 1.00 (2bb4a0accd4003c1db4c24533981e01b1adfd656, 2019)
@@ -586,6 +616,11 @@ Files extracted from upstream source:
 - `include` folder
 - `LICENSE`
 
+Some downstream changes have been made and are identified by
+`// -- GODOT begin --` and `// -- GODOT end --` comments.
+They can be reapplied using the patch included in the `patches`
+folder.
+
 
 ## squish
 
@@ -705,3 +740,4 @@ Files extracted from upstream source:
 
 - lib/{common/,compress/,decompress/,zstd.h}
 - LICENSE
+

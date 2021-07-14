@@ -73,8 +73,8 @@ public:
 	JacobianEntry3DSW m_jac[3]; //3 orthogonal linear constraints
 
 	real_t m_appliedImpulse;
-	Transform m_rbAFrame;
-	Transform m_rbBFrame;
+	Transform3D m_rbAFrame;
+	Transform3D m_rbBFrame;
 
 	real_t m_limitSoftness;
 	real_t m_biasFactor;
@@ -102,12 +102,12 @@ public:
 	bool m_solveSwingLimit;
 
 public:
-	virtual PhysicsServer3D::JointType get_type() const { return PhysicsServer3D::JOINT_TYPE_CONE_TWIST; }
+	virtual PhysicsServer3D::JointType get_type() const override { return PhysicsServer3D::JOINT_TYPE_CONE_TWIST; }
 
-	virtual bool setup(real_t p_timestep);
-	virtual void solve(real_t p_timestep);
+	virtual bool setup(real_t p_step) override;
+	virtual void solve(real_t p_step) override;
 
-	ConeTwistJoint3DSW(Body3DSW *rbA, Body3DSW *rbB, const Transform &rbAFrame, const Transform &rbBFrame);
+	ConeTwistJoint3DSW(Body3DSW *rbA, Body3DSW *rbB, const Transform3D &rbAFrame, const Transform3D &rbBFrame);
 
 	void setAngularOnly(bool angularOnly) {
 		m_angularOnly = angularOnly;

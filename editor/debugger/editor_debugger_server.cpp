@@ -40,7 +40,7 @@
 
 class EditorDebuggerServerTCP : public EditorDebuggerServer {
 private:
-	Ref<TCP_Server> server;
+	Ref<TCPServer> server;
 
 public:
 	static EditorDebuggerServer *create(const String &p_protocol);
@@ -60,7 +60,7 @@ EditorDebuggerServer *EditorDebuggerServerTCP::create(const String &p_protocol) 
 }
 
 EditorDebuggerServerTCP::EditorDebuggerServerTCP() {
-	server.instance();
+	server.instantiate();
 }
 
 Error EditorDebuggerServerTCP::start() {

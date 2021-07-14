@@ -32,7 +32,7 @@
 
 #include "core/core_string_names.h"
 #include "core/io/marshalls.h"
-#include "core/object/reference.h"
+#include "core/object/ref_counted.h"
 #include "core/os/os.h"
 #include "core/templates/oa_hash_map.h"
 #include "core/variant/binder_common.h"
@@ -91,6 +91,10 @@ struct VariantUtilityFunctions {
 
 	static inline double fposmod(double b, double r) {
 		return Math::fposmod(b, r);
+	}
+
+	static inline int64_t posmod(int64_t b, int64_t r) {
+		return Math::posmod(b, r);
 	}
 
 	static inline double floor(double x) {
@@ -1154,6 +1158,7 @@ void Variant::_register_variant_utility_functions() {
 	FUNCBINDR(sqrt, sarray("x"), Variant::UTILITY_FUNC_TYPE_MATH);
 	FUNCBINDR(fmod, sarray("x", "y"), Variant::UTILITY_FUNC_TYPE_MATH);
 	FUNCBINDR(fposmod, sarray("x", "y"), Variant::UTILITY_FUNC_TYPE_MATH);
+	FUNCBINDR(posmod, sarray("x", "y"), Variant::UTILITY_FUNC_TYPE_MATH);
 	FUNCBINDR(floor, sarray("x"), Variant::UTILITY_FUNC_TYPE_MATH);
 	FUNCBINDR(ceil, sarray("x"), Variant::UTILITY_FUNC_TYPE_MATH);
 	FUNCBINDR(round, sarray("x"), Variant::UTILITY_FUNC_TYPE_MATH);
@@ -1343,8 +1348,8 @@ String Variant::get_utility_function_argument_name(const StringName &p_name, int
 	if (!bfi) {
 		return String();
 	}
-	ERR_FAIL_COND_V(bfi->is_vararg, String());
 	ERR_FAIL_INDEX_V(p_arg, bfi->argnames.size(), String());
+	ERR_FAIL_COND_V(bfi->is_vararg, String());
 	return bfi->argnames[p_arg];
 }
 
@@ -1372,6 +1377,23 @@ bool Variant::is_utility_function_vararg(const StringName &p_name) {
 	}
 
 	return bfi->is_vararg;
+}
+
+uint32_t Variant::get_utility_function_hash(const StringName &p_name) {
+	const VariantUtilityFunctionInfo *bfi = utility_function_table.lookup_ptr(p_name);
+	ERR_FAIL_COND_V(!bfi, 0);
+
+	uint32_t hash = hash_djb2_one_32(bfi->is_vararg);
+	hash = hash_djb2_one_32(bfi->returns_value, hash);
+	if (bfi->returns_value) {
+		hash = hash_djb2_one_32(bfi->return_type, hash);
+	}
+	hash = hash_djb2_one_32(bfi->argcount, hash);
+	for (int i = 0; i < bfi->argcount; i++) {
+		hash = hash_djb2_one_32(bfi->get_arg_type(i), hash);
+	}
+
+	return hash;
 }
 
 void Variant::get_utility_function_list(List<StringName> *r_functions) {

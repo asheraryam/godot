@@ -226,8 +226,9 @@ static void _get_drives(List<String> *list) {
 		while (getmntent_r(mtab, &mnt, strings, sizeof(strings))) {
 			if (mnt.mnt_dir != nullptr && _filter_drive(&mnt)) {
 				// Avoid duplicates
-				if (!list->find(mnt.mnt_dir)) {
-					list->push_back(mnt.mnt_dir);
+				String name = String::utf8(mnt.mnt_dir);
+				if (!list->find(name)) {
+					list->push_back(name);
 				}
 			}
 		}
@@ -240,8 +241,9 @@ static void _get_drives(List<String> *list) {
 	const char *home = getenv("HOME");
 	if (home) {
 		// Only add if it's not a duplicate
-		if (!list->find(home)) {
-			list->push_back(home);
+		String home_name = String::utf8(home);
+		if (!list->find(home_name)) {
+			list->push_back(home_name);
 		}
 
 		// Check $HOME/.config/gtk-3.0/bookmarks
@@ -254,7 +256,7 @@ static void _get_drives(List<String> *list) {
 				// Parse only file:// links
 				if (strncmp(string, "file://", 7) == 0) {
 					// Strip any unwanted edges on the strings and push_back if it's not a duplicate
-					String fpath = String(string + 7).strip_edges().split_spaces()[0].uri_decode();
+					String fpath = String::utf8(string + 7).strip_edges().split_spaces()[0].uri_decode();
 					if (!list->find(fpath)) {
 						list->push_back(fpath);
 					}
@@ -404,14 +406,61 @@ Error DirAccessUnix::remove(String p_path) {
 	}
 }
 
-size_t DirAccessUnix::get_space_left() {
+bool DirAccessUnix::is_link(String p_file) {
+	if (p_file.is_rel_path()) {
+		p_file = get_current_dir().plus_file(p_file);
+	}
+
+	p_file = fix_path(p_file);
+
+	struct stat flags;
+	if ((lstat(p_file.utf8().get_data(), &flags) != 0)) {
+		return FAILED;
+	}
+
+	return S_ISLNK(flags.st_mode);
+}
+
+String DirAccessUnix::read_link(String p_file) {
+	if (p_file.is_rel_path()) {
+		p_file = get_current_dir().plus_file(p_file);
+	}
+
+	p_file = fix_path(p_file);
+
+	char buf[256];
+	memset(buf, 0, 256);
+	ssize_t len = readlink(p_file.utf8().get_data(), buf, sizeof(buf));
+	String link;
+	if (len > 0) {
+		link.parse_utf8(buf, len);
+	}
+	return link;
+}
+
+Error DirAccessUnix::create_link(String p_source, String p_target) {
+	if (p_target.is_rel_path()) {
+		p_target = get_current_dir().plus_file(p_target);
+	}
+
+	p_source = fix_path(p_source);
+	p_target = fix_path(p_target);
+
+	if (symlink(p_source.utf8().get_data(), p_target.utf8().get_data()) == 0) {
+		return OK;
+	} else {
+		return FAILED;
+	}
+}
+
+uint64_t DirAccessUnix::get_space_left() {
 #ifndef NO_STATVFS
 	struct statvfs vfs;
 	if (statvfs(current_dir.utf8().get_data(), &vfs) != 0) {
 		return 0;
 	};
 
-	return vfs.f_bfree * vfs.f_bsize;
+	return (uint64_t)vfs.f_bavail * (uint64_t)vfs.f_frsize;
 #else
 	// FIXME: Implement this.
 	return 0;

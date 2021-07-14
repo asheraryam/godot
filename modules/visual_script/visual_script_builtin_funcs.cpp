@@ -33,7 +33,7 @@
 #include "core/io/marshalls.h"
 #include "core/math/math_funcs.h"
 #include "core/object/class_db.h"
-#include "core/object/reference.h"
+#include "core/object/ref_counted.h"
 #include "core/os/os.h"
 #include "core/variant/variant_parser.h"
 
@@ -132,6 +132,7 @@ bool VisualScriptBuiltinFunc::has_input_sequence_port() const {
 		case TEXT_PRINT:
 		case TEXT_PRINTERR:
 		case TEXT_PRINTRAW:
+		case MATH_SEED:
 			return true;
 		default:
 			return false;
@@ -723,7 +724,7 @@ void VisualScriptBuiltinFunc::exec_func(BuiltinFunc p_func, const Variant **p_in
 		case VisualScriptBuiltinFunc::MATH_POSMOD: {
 			VALIDATE_ARG_NUM(0);
 			VALIDATE_ARG_NUM(1);
-			*r_return = Math::posmod((int)*p_inputs[0], (int)*p_inputs[1]);
+			*r_return = Math::posmod((int64_t)*p_inputs[0], (int64_t)*p_inputs[1]);
 		} break;
 		case VisualScriptBuiltinFunc::MATH_FLOOR: {
 			VALIDATE_ARG_NUM(0);
@@ -1186,7 +1187,7 @@ public:
 	}
 };
 
-VisualScriptNodeInstance *VisualScriptBuiltinFunc::instance(VisualScriptInstance *p_instance) {
+VisualScriptNodeInstance *VisualScriptBuiltinFunc::instantiate(VisualScriptInstance *p_instance) {
 	VisualScriptNodeInstanceBuiltinFunc *instance = memnew(VisualScriptNodeInstanceBuiltinFunc);
 	instance->node = this;
 	instance->instance = p_instance;
